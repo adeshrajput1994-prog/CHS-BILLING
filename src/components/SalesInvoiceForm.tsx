@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -113,6 +114,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
   currentInvoiceDate,
   currentInvoiceTime,
 }) => {
+  const { selectedCompany } = useCompany(); // Use company context
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
   const [allItems, setAllItems] = useState<Item[]>([]);
   const [salesItems, setSalesItems] = useState<SalesItem[]>(initialData?.items || []);
@@ -346,8 +348,8 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       <form onSubmit={salesForm.handleSubmit(onSubmitSalesInvoice, onErrorSalesForm)} className="space-y-6">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-4xl font-extrabold mb-2">SHRI RAM TRADERS</h2>
-          <p className="text-md text-muted-foreground">HARCHANDPUR KALAN, POST-CHHACHHENA, ETAH</p>
+          <h2 className="text-4xl font-extrabold mb-2">{selectedCompany?.name || "COMPANY NAME"}</h2>
+          <p className="text-md text-muted-foreground">{selectedCompany?.address || "COMPANY ADDRESS"}</p>
         </div>
 
         {/* Invoice Details & Farmer Selection */}

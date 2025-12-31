@@ -15,7 +15,9 @@ import ReportsPage from "./pages/ReportsPage";
 import SyncBackupPage from "./pages/SyncBackupPage";
 import UtilitiesPage from "./pages/UtilitiesPage";
 import SettingsPage from "./pages/SettingsPage";
+import CompanySettingsPage from "./pages/CompanySettingsPage"; // Import the new CompanySettingsPage
 import NotFound from "./pages/NotFound";
+import { CompanyProvider } from "./context/CompanyContext"; // Import CompanyProvider
 
 const queryClient = new QueryClient();
 
@@ -25,23 +27,26 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/farmers" element={<FarmersPage />} />
-            <Route path="/items" element={<ItemsPage />} />
-            <Route path="/purchase" element={<PurchaseInvoicesPage />} /> {/* Update route path */}
-            <Route path="/sale" element={<SalesInvoicesPage />} /> {/* Update route path */}
-            <Route path="/manufacturing-expenses" element={<ManufacturingExpensesPage />} />
-            <Route path="/cash-bank" element={<CashBankPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/sync-backup" element={<SyncBackupPage />} />
-            <Route path="/utilities" element={<UtilitiesPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <CompanyProvider> {/* Wrap Layout with CompanyProvider */}
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/farmers" element={<FarmersPage />} />
+              <Route path="/items" element={<ItemsPage />} />
+              <Route path="/purchase" element={<PurchaseInvoicesPage />} /> {/* Update route path */}
+              <Route path="/sale" element={<SalesInvoicesPage />} /> {/* Update route path */}
+              <Route path="/manufacturing-expenses" element={<ManufacturingExpensesPage />} />
+              <Route path="/cash-bank" element={<CashBankPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/sync-backup" element={<SyncBackupPage />} />
+              <Route path="/utilities" element={<UtilitiesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/company-settings" element={<CompanySettingsPage />} /> {/* New route */}
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </CompanyProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

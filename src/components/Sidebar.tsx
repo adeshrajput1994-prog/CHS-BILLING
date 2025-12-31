@@ -13,6 +13,7 @@ import {
   Cloud,
   Settings,
   Menu,
+  Building2, // New icon for Company Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,6 +32,7 @@ const navItems = [
   { name: "Sync, Share & Backup", icon: Cloud, path: "/sync-backup" },
   { name: "Utilities", icon: Settings, path: "/utilities" },
   { name: "Settings", icon: Settings, path: "/settings" },
+  { name: "Company Settings", icon: Building2, path: "/company-settings" }, // New nav item
 ];
 
 const SidebarContent = () => (
