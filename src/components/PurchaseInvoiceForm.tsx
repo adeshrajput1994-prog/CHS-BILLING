@@ -6,18 +6,34 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Printer } from "lucide-react";
+import { Plus, Trash2, Printer, Check, ChevronsUpDown } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import FarmersForm from "./FarmersForm"; // Import FarmersForm
+import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -113,6 +129,9 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
     initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
   );
+
+  const [openFarmerSelect, setOpenFarmerSelect] = useState(false);
+  const [isAddFarmerDialogOpen, setIsAddFarmerDialogOpen] = useState(false);
 
   const itemForm = useForm<PurchaseInvoiceItemFormValues>({
     resolver: zodResolver(purchaseInvoiceItemSchema),
@@ -283,6 +302,19 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     document.body.classList.remove('print-mode');
   };
 
+  const handleQuickAddFarmerSave = (newFarmerData: Omit<Farmer, 'id'>) => {
+    const newId = getNextFarmerId(allFarmers);
+    const newFarmer: Farmer = { id: newId, ...newFarmerData };
+    setAllFarmers((prevFarmers) => [...prevFarmers, newFarmer]);
+    purchaseForm.setValue("selectedFarmerId", newId, { shouldValidate: true }); // Select the newly added farmer
+    setIsAddFarmerDialogOpen(false); // Close the dialog
+    showSuccess(`Farmer ${newFarmer.farmerName} added and selected!`);
+  };
+
+  const handleQuickAddFarmerCancel = () => {
+    setIsAddFarmerDialogOpen(false); // Close the dialog
+  };
+
   return (
     <div className="space-y-6 p-4">
       <div className="flex justify-between items-center print-hide">
@@ -327,20 +359,68 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="space-y-2 print-hide">
                 <Label htmlFor="selectedFarmerId">FARMER</Label>
-                <Select onValueChange={(value) => purchaseForm.setValue("selectedFarmerId", value, { shouldValidate: true })} value={selectedFarmerId}>
-                  <SelectTrigger id="selectedFarmerId">
-                    <SelectValue placeholder="Select a farmer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allFarmers.map((farmer) => (
-                      <SelectItem key={farmer.id} value={farmer.id}>
-                        {farmer.farmerName} (ID: {farmer.id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center space-x-2">
+                  <Popover open={openFarmerSelect} onOpenChange={setOpenFarmerSelect}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openFarmerSelect}
+                        className="w-full justify-between"
+                      >
+                        {selectedFarmer
+                          ? selectedFarmer.farmerName
+                          : "Select farmer..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search farmer..." />
+                        <CommandEmpty>No farmer found.</CommandEmpty>
+                        <CommandGroup>
+                          {allFarmers.map((farmer) => (
+                            <CommandItem
+                              key={farmer.id}
+                              value={`${farmer.farmerName} ${farmer.id} ${farmer.mobileNo}`}
+                              onSelect={() => {
+                                purchaseForm.setValue("selectedFarmerId", farmer.id, { shouldValidate: true });
+                                setOpenFarmerSelect(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedFarmerId === farmer.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {farmer.farmerName} (ID: {farmer.id})
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Dialog open={isAddFarmerDialogOpen} onOpenChange={setIsAddFarmerDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="shrink-0">
+                        <Plus className="h-4 w-4" />
+                        <span className="sr-only">Add New Farmer</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Add New Farmer</DialogTitle>
+                        <DialogDescription>
+                          Fill in the details to add a new farmer.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <FarmersForm onSave={handleQuickAddFarmerSave} onCancel={handleQuickAddFarmerCancel} />
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 {purchaseForm.formState.errors.selectedFarmerId && (
-                  <p className="text-red-500 text-sm">{purchaseForm.formState.errors.selectedFarmerId.message}</p>
+                  <p className="text-red-500 text-sm col-span-2 text-right">{purchaseForm.formState.errors.selectedFarmerId.message}</p>
                 )}
               </div>
               {selectedFarmer ? (
@@ -402,18 +482,45 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="selectedItemId">ITEM</Label>
-                  <Select onValueChange={(value) => itemForm.setValue("selectedItemId", value, { shouldValidate: true })} value={selectedItemForAdd}>
-                    <SelectTrigger id="selectedItemId">
-                      <SelectValue placeholder="Select an item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allItems.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {selectedItemForAdd
+                          ? allItems.find((item) => item.id === selectedItemForAdd)?.itemName
+                          : "Select item..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search item..." />
+                        <CommandEmpty>No item found.</CommandEmpty>
+                        <CommandGroup>
+                          {allItems.map((item) => (
+                            <CommandItem
+                              key={item.id}
+                              value={item.itemName}
+                              onSelect={() => {
+                                itemForm.setValue("selectedItemId", item.id, { shouldValidate: true });
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedItemForAdd === item.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG)
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   {itemForm.formState.errors.selectedItemId && (
                     <p className="text-red-500 text-sm">{itemForm.formState.errors.selectedItemId.message}</p>
                   )}

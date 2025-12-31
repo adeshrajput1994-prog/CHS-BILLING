@@ -6,27 +6,13 @@ import { Plus, Printer } from "lucide-react";
 import ItemForm from "@/components/ItemForm";
 import ItemTable from "@/components/ItemTable"; // Import the new ItemTable
 import { Input } from "@/components/ui/input";
+import { getNextItemId } from "@/utils/idGenerators"; // Import from new utility
 
 interface Item {
   id: string;
   itemName: string;
   ratePerKg: number;
 }
-
-// Helper function to get the next item ID (e.g., I001, I002)
-const getNextItemId = (currentItems: Item[]) => {
-  let maxIdNum = 0;
-  currentItems.forEach(item => {
-    const match = item.id.match(/^I(\d+)$/);
-    if (match && match[1]) {
-      const idNum = parseInt(match[1], 10);
-      if (idNum > maxIdNum) {
-        maxIdNum = idNum;
-      }
-    }
-  });
-  return `I${String(maxIdNum + 1).padStart(3, '0')}`;
-};
 
 const ItemsPage = () => {
   const [items, setItems] = useState<Item[]>([]);
