@@ -21,10 +21,12 @@ import * as z from "zod";
 import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balanceCalculations";
 import { CompleteSalesInvoice } from "./SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm";
+import { Share2 } from "lucide-react"; // Import Share2 icon
 
 interface Farmer {
   id: string;
   farmerName: string;
+  mobileNo?: string; // Added mobileNo for WhatsApp sharing
   // Add other necessary farmer details if needed for display
 }
 
@@ -153,6 +155,35 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
     showError("Please correct the errors in the form.");
   };
 
+  const handleWhatsAppShare = () => {
+    if (!selectedFarmer || !selectedFarmer.mobileNo) {
+      showError("Please select a farmer with a mobile number to share via WhatsApp.");
+      return;
+    }
+
+    const transactionData = initialData || form.getValues(); // Use initialData if editing, otherwise current form values
+    const farmerName = selectedFarmer.farmerName;
+    const transactionType = transactionData.transactionType;
+    const amount = transactionData.amount;
+    const paymentMethod = transactionData.paymentMethod;
+    const remarks = transactionData.remarks || "N/A";
+    const date = initialData?.date || new Date().toLocaleDateString('en-GB');
+    const time = initialData?.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const message = `*Cash/Bank Transaction Details*\n\n` +
+                    `*Date:* ${date}\n` +
+                    `*Time:* ${time}\n` +
+                    `*Farmer:* ${farmerName} (ID: ${selectedFarmer.id})\n` +
+                    `*Type:* ${transactionType}\n` +
+                    `*Amount:* ₹${amount.toFixed(2)}\n` +
+                    `*Method:* ${paymentMethod}\n` +
+                    `*Remarks:* ${remarks}\n\n` +
+                    `Current Due Balance for ${farmerName}: ₹${currentFarmerDue.toFixed(2)}`;
+
+    const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -246,9 +277,14 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
             <Textarea id="remarks" placeholder="Add any notes here..." {...form.register("remarks")} />
           </div>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 print-hide">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
             <Button type="submit">{initialData ? "Update Transaction" : "Record Transaction"}</Button>
+            {initialData && ( // Only show WhatsApp button if editing/viewing an existing transaction
+              <Button type="button" onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || !selectedFarmer.mobileNo}>
+                <Share2 className="mr-2 h-4 w-4" /> WhatsApp
+              </Button>
+            )}
           </div>
         </form>
       </CardContent>

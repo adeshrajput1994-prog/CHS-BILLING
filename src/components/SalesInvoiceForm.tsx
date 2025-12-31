@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Printer, Save, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Printer, Save, Check, ChevronsUpDown, Share2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -285,6 +285,36 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     document.body.classList.remove('print-mode');
   };
 
+  const handleWhatsAppShare = () => {
+    if (!selectedFarmer || !selectedFarmer.mobileNo) {
+      showError("Please select a farmer with a mobile number to share via WhatsApp.");
+      return;
+    }
+
+    if (salesItems.length === 0) {
+      showError("Please add items to the invoice before sharing.");
+      return;
+    }
+
+    const message = `*Sales Invoice Details*\n\n` +
+                    `*Invoice No:* ${currentInvoiceNo}\n` +
+                    `*Date:* ${currentInvoiceDate}\n` +
+                    `*Time:* ${currentInvoiceTime}\n` +
+                    `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
+                    `*Village:* ${selectedFarmer.village}\n\n` +
+                    `*Items:*\n` +
+                    salesItems.map((item, index) =>
+                      `${index + 1}. ${item.itemName} - ${item.weight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+                    ).join('\n') +
+                    `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
+                    `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
+                    `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
+                    `Thank you for your business!`;
+
+    const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const handleQuickAddFarmerSave = (newFarmerData: Omit<Farmer, 'id'>) => {
     const newId = getNextFarmerId(allFarmers);
     const newFarmer: Farmer = { id: newId, ...newFarmerData };
@@ -303,6 +333,9 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       <div className="flex justify-end items-center space-x-2 print-hide mb-4">
         <Button variant="outline" onClick={() => console.log("Save functionality not implemented yet.")}>
           <Save className="mr-2 h-4 w-4" /> Save
+        </Button>
+        <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || salesItems.length === 0}>
+          <Share2 className="mr-2 h-4 w-4" /> WhatsApp
         </Button>
         <Button onClick={handlePrint} variant="outline">
           <Printer className="mr-2 h-4 w-4" /> Print
@@ -328,7 +361,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
               <Input id="farmerId" value={selectedFarmer?.id || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
               <Label htmlFor="farmerNameDisplay" className="text-right">FARMER</Label>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 print-hide">
                 <Popover open={openFarmerSelect} onOpenChange={setOpenFarmerSelect}>
                   <PopoverTrigger asChild>
                     <Button
@@ -388,8 +421,10 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                   </DialogContent>
                 </Dialog>
               </div>
+              {/* Display selected farmer name for print */}
+              <Input id="farmerNameDisplayPrint" value={selectedFarmer?.farmerName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
               {salesForm.formState.errors.selectedFarmerId && (
-                <p className="text-red-500 text-sm col-span-2 text-right">{salesForm.formState.errors.selectedFarmerId.message}</p>
+                <p className="text-red-500 text-sm col-span-2 text-right print-hide">{salesForm.formState.errors.selectedFarmerId.message}</p>
               )}
 
               <Label htmlFor="village" className="text-right">VILLAGE</Label>
@@ -588,7 +623,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         </Card>
 
         {/* Signatures */}
-        <div className="flex justify-between mt-8 pt-8 border-t border-dashed print-hide">
+        <div className="flex justify-between mt-8 pt-8 border-t border-dashed">
           <div className="text-center">
             <p className="font-semibold">FARMER SIGN</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>

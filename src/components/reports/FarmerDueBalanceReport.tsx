@@ -15,8 +15,9 @@ import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balance
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { Input } from "@/components/ui/input";
-import { Printer } from "lucide-react";
+import { Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { showError } from "@/utils/toast";
 
 interface Farmer {
   id: string;
@@ -98,6 +99,24 @@ const FarmerDueBalanceReport: React.FC = () => {
     document.body.classList.remove('print-mode');
   };
 
+  const handleWhatsAppShare = () => {
+    if (filteredBalances.length === 0) {
+      showError("No farmer balances to share.");
+      return;
+    }
+
+    let message = `*Farmer Due Balance Report*\n\n`;
+    filteredBalances.forEach(fb => {
+      const balanceType = fb.balance >= 0 ? "Owed by Farmer" : "Owed to Farmer";
+      message += `*${fb.farmer.farmerName}* (ID: ${fb.farmer.id}, Village: ${fb.farmer.village})\n`;
+      message += `Balance: ₹${fb.balance.toFixed(2)} (${balanceType})\n\n`;
+    });
+    message += `View full report in Vyapar app.`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -109,6 +128,9 @@ const FarmerDueBalanceReport: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
+          <Button onClick={handleWhatsAppShare} variant="outline" disabled={filteredBalances.length === 0}>
+            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+          </Button>
           <Button onClick={handlePrint} variant="outline">
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>

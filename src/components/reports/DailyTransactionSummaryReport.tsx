@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Printer } from "lucide-react";
+import { Calendar as CalendarIcon, Printer, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,6 +23,7 @@ import {
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction } from "@/utils/balanceCalculations";
+import { showError } from "@/utils/toast";
 
 const DailyTransactionSummaryReport: React.FC = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -78,11 +79,35 @@ const DailyTransactionSummaryReport: React.FC = () => {
   const totalPurchaseAmount = dailyPurchases.reduce((sum, inv) => sum + inv.totalAmount, 0);
   const totalCashIn = dailyCashBank.filter(txn => txn.type === "Payment In").reduce((sum, txn) => sum + txn.amount, 0);
   const totalCashOut = dailyCashBank.filter(txn => txn.type === "Payment Out").reduce((sum, txn) => sum + txn.amount, 0);
+  const netCashFlow = totalCashIn - totalCashOut;
 
   const handlePrint = () => {
     document.body.classList.add('print-mode');
     window.print();
     document.body.classList.remove('print-mode');
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!date) {
+      showError("Please select a date to share the daily summary.");
+      return;
+    }
+
+    const message = `*Daily Transaction Summary for ${displayDate}*\n\n` +
+                    `*Sales Summary:*\n` +
+                    `Total Sales Amount: ₹${totalSalesAmount.toFixed(2)}\n` +
+                    `Number of Sales Invoices: ${dailySales.length}\n\n` +
+                    `*Purchase Summary:*\n` +
+                    `Total Purchase Amount: ₹${totalPurchaseAmount.toFixed(2)}\n` +
+                    `Number of Purchase Invoices: ${dailyPurchases.length}\n\n` +
+                    `*Cash & Bank Summary:*\n` +
+                    `Total Payments In: ₹${totalCashIn.toFixed(2)}\n` +
+                    `Total Payments Out: ₹${totalCashOut.toFixed(2)}\n` +
+                    `Net Cash Flow: ₹${netCashFlow.toFixed(2)}\n\n` +
+                    `View full report in Vyapar app.`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -115,6 +140,9 @@ const DailyTransactionSummaryReport: React.FC = () => {
               />
             </PopoverContent>
           </Popover>
+          <Button onClick={handleWhatsAppShare} variant="outline" disabled={!date}>
+            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+          </Button>
           <Button onClick={handlePrint} variant="outline" disabled={!date}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
@@ -237,8 +265,8 @@ const DailyTransactionSummaryReport: React.FC = () => {
                     </TableRow>
                     <TableRow className="font-bold bg-muted/50">
                       <TableCell colSpan={3}>Net Cash Flow</TableCell>
-                      <TableCell className={`text-right ${ (totalCashIn - totalCashOut) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        ₹ {(totalCashIn - totalCashOut).toFixed(2)}
+                      <TableCell className={`text-right ${ netCashFlow >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        ₹ {netCashFlow.toFixed(2)}
                       </TableCell>
                     </TableRow>
                   </TableBody>

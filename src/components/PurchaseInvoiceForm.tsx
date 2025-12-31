@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Printer, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Printer, Check, ChevronsUpDown, Share2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -302,6 +302,36 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     document.body.classList.remove('print-mode');
   };
 
+  const handleWhatsAppShare = () => {
+    if (!selectedFarmer || !selectedFarmer.mobileNo) {
+      showError("Please select a farmer with a mobile number to share via WhatsApp.");
+      return;
+    }
+
+    if (purchaseItems.length === 0) {
+      showError("Please add items to the invoice before sharing.");
+      return;
+    }
+
+    const message = `*Purchase Invoice Details*\n\n` +
+                    `*Purchase No:* ${currentPurchaseNo}\n` +
+                    `*Date:* ${currentPurchaseDate}\n` +
+                    `*Time:* ${currentPurchaseTime}\n` +
+                    `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
+                    `*Village:* ${selectedFarmer.village}\n\n` +
+                    `*Items:*\n` +
+                    purchaseItems.map((item, index) =>
+                      `${index + 1}. ${item.itemName} - ${item.finalWeight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+                    ).join('\n') +
+                    `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
+                    `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
+                    `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
+                    `Thank you for your business!`;
+
+    const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   const handleQuickAddFarmerSave = (newFarmerData: Omit<Farmer, 'id'>) => {
     const newId = getNextFarmerId(allFarmers);
     const newFarmer: Farmer = { id: newId, ...newFarmerData };
@@ -320,6 +350,9 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
       <div className="flex justify-between items-center print-hide">
         <h1 className="text-3xl font-bold">{initialData ? "Edit Purchase Invoice" : "Create Purchase Invoice"}</h1>
         <div className="flex space-x-2">
+          <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || purchaseItems.length === 0}>
+            <Share2 className="mr-2 h-4 w-4" /> WhatsApp
+          </Button>
           <Button onClick={handlePrint} variant="outline">
             <Printer className="mr-2 h-4 w-4" /> Print Invoice
           </Button>
@@ -420,7 +453,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                   </Dialog>
                 </div>
                 {purchaseForm.formState.errors.selectedFarmerId && (
-                  <p className="text-red-500 text-sm col-span-2 text-right">{purchaseForm.formState.errors.selectedFarmerId.message}</p>
+                  <p className="text-red-500 text-sm col-span-2 text-right print-hide">{purchaseForm.formState.errors.selectedFarmerId.message}</p>
                 )}
               </div>
               {selectedFarmer ? (
@@ -651,7 +684,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         </Card>
 
         {/* Signatures */}
-        <div className="flex justify-between mt-8 pt-8 border-t border-dashed print-hide">
+        <div className="flex justify-between mt-8 pt-8 border-t border-dashed">
           <div className="text-center">
             <p className="font-semibold">FARMER SIGN</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>

@@ -18,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, Share2 } from "lucide-react";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction } from "@/utils/balanceCalculations";
+import { showError } from "@/utils/toast";
 
 interface Farmer {
   id: string;
@@ -169,6 +170,22 @@ const FarmerStatementReport: React.FC = () => {
 
   const netBalance = statement.length > 0 ? statement[statement.length - 1].balance : 0;
 
+  const handleWhatsAppShare = () => {
+    if (!selectedFarmer || !selectedFarmer.mobileNo) {
+      showError("Please select a farmer with a mobile number to share their statement summary.");
+      return;
+    }
+
+    const balanceType = netBalance >= 0 ? "Owed by Farmer" : "Owed to Farmer";
+    const message = `*Farmer Statement Summary for ${selectedFarmer.farmerName}*\n\n` +
+                    `*Net Balance:* ₹${netBalance.toFixed(2)} (${balanceType})\n\n` +
+                    `This summary reflects transactions up to ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}.\n` +
+                    `For full details, please refer to the complete statement in the Vyapar app.`;
+
+    const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -189,6 +206,9 @@ const FarmerStatementReport: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+          <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || statement.length === 0}>
+            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+          </Button>
           <Button onClick={handlePrint} variant="outline" disabled={!selectedFarmerId}>
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
