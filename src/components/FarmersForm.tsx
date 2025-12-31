@@ -13,21 +13,21 @@ import * as z from "zod";
 // Define the Zod schema for farmer details
 const farmerSchema = z.object({
   farmerName: z.string().min(1, { message: "Farmer Name is required." }),
-  fathersName: z.string().min(1, { message: "Father's Name is required." }),
+  fathersName: z.string().optional(), // Made optional
   village: z.string().min(1, { message: "Village is required." }),
   mobileNo: z.string()
-    .min(1, { message: "Mobile No. is required." })
-    .regex(/^\d{10}$/, { message: "Mobile No. must be 10 digits." }),
+    .optional() // Made optional
+    .refine((val) => !val || /^\d{10}$/.test(val), { message: "Mobile No. must be 10 digits if provided." }),
   aadharCardNo: z.string()
-    .min(1, { message: "Aadhar Card No. is required." })
-    .regex(/^\d{12}$/, { message: "Aadhar Card No. must be 12 digits." }),
-  accountName: z.string().min(1, { message: "Account Name is required." }),
+    .optional() // Made optional
+    .refine((val) => !val || /^\d{12}$/.test(val), { message: "Aadhar Card No. must be 12 digits if provided." }),
+  accountName: z.string().optional(), // Made optional
   accountNo: z.string()
-    .min(1, { message: "Account No. is required." })
-    .regex(/^\d{9,18}$/, { message: "Account No. must be between 9 and 18 digits." }),
+    .optional() // Made optional
+    .refine((val) => !val || /^\d{9,18}$/.test(val), { message: "Account No. must be between 9 and 18 digits if provided." }),
   ifscCode: z.string()
-    .min(1, { message: "IFSC Code is required." })
-    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, { message: "Invalid IFSC Code format." }),
+    .optional() // Made optional
+    .refine((val) => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val), { message: "Invalid IFSC Code format if provided." }),
 });
 
 type FarmerFormValues = z.infer<typeof farmerSchema>;
@@ -35,13 +35,13 @@ type FarmerFormValues = z.infer<typeof farmerSchema>;
 interface Farmer {
   id: string;
   farmerName: string;
-  fathersName: string;
+  fathersName?: string; // Made optional
   village: string;
-  mobileNo: string;
-  aadharCardNo: string;
-  accountName: string;
-  accountNo: string;
-  ifscCode: string;
+  mobileNo?: string; // Made optional
+  aadharCardNo?: string; // Made optional
+  accountName?: string; // Made optional
+  accountNo?: string; // Made optional
+  ifscCode?: string; // Made optional
 }
 
 interface FarmersFormProps {
@@ -119,7 +119,7 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="fathersName">Father's Name</Label>
+            <Label htmlFor="fathersName">Father's Name (Optional)</Label>
             <Input id="fathersName" placeholder="Father's Name" {...form.register("fathersName")} />
             {form.formState.errors.fathersName && (
               <p className="text-red-500 text-sm">{form.formState.errors.fathersName.message}</p>
@@ -133,35 +133,35 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mobileNo">Mobile No.</Label>
+            <Label htmlFor="mobileNo">Mobile No. (Optional)</Label>
             <Input id="mobileNo" placeholder="Mobile No." type="tel" {...form.register("mobileNo")} />
             {form.formState.errors.mobileNo && (
               <p className="text-red-500 text-sm">{form.formState.errors.mobileNo.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="aadharCardNo">Aadhar Card No.</Label>
+            <Label htmlFor="aadharCardNo">Aadhar Card No. (Optional)</Label>
             <Input id="aadharCardNo" placeholder="Aadhar Card No." {...form.register("aadharCardNo")} />
             {form.formState.errors.aadharCardNo && (
               <p className="text-red-500 text-sm">{form.formState.errors.aadharCardNo.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="accountName">Account Name</Label>
+            <Label htmlFor="accountName">Account Name (Optional)</Label>
             <Input id="accountName" placeholder="Account Name" {...form.register("accountName")} />
             {form.formState.errors.accountName && (
               <p className="text-red-500 text-sm">{form.formState.errors.accountName.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="accountNo">Account No.</Label>
+            <Label htmlFor="accountNo">Account No. (Optional)</Label>
             <Input id="accountNo" placeholder="Account No." {...form.register("accountNo")} />
             {form.formState.errors.accountNo && (
               <p className="text-red-500 text-sm">{form.formState.errors.accountNo.message}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ifscCode">IFSC Code</Label>
+            <Label htmlFor="ifscCode">IFSC Code (Optional)</Label>
             <Input id="ifscCode" placeholder="IFSC Code" {...form.register("ifscCode")} />
             {form.formState.errors.ifscCode && (
               <p className="text-red-500 text-sm">{form.formState.errors.ifscCode.message}</p>
