@@ -87,5 +87,9 @@
     "vite": "^6.3.4",
     "@capacitor-community/electron": "5.0.0",
     "electron-builder": "24.13.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/your-repo-name.git"
   }
 }
