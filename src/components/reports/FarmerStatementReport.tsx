@@ -26,6 +26,7 @@ import { showError } from "@/utils/toast";
 import { DateRangePicker } from "@/components/DateRangePicker"; // Import DateRangePicker
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, parseISO, format } from "date-fns";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface Farmer {
   id: string;
@@ -49,6 +50,7 @@ interface StatementEntry {
 }
 
 const FarmerStatementReport: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
   const [selectedFarmerId, setSelectedFarmerId] = useState<string | undefined>(undefined);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
@@ -207,17 +209,19 @@ const FarmerStatementReport: React.FC = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-2xl font-bold">Farmer Statement</CardTitle>
-          <CardDescription>View detailed transaction history for a farmer.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("Farmer Statement", "किसान विवरण")}</CardTitle>
+          <CardDescription>{t("View detailed transaction history for a farmer.", "एक किसान के लिए विस्तृत लेनदेन इतिहास देखें।")}</CardDescription>
         </div>
         <div className="flex space-x-2 print-hide">
           <Select onValueChange={setSelectedFarmerId} value={selectedFarmerId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select a farmer" />
+              <SelectValue placeholder={t("Select a farmer", "एक किसान चुनें")} />
             </SelectTrigger>
             <SelectContent>
               {allFarmers.map((farmer) => (
@@ -229,10 +233,10 @@ const FarmerStatementReport: React.FC = () => {
           </Select>
           <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || statement.length === 0}>
-            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+            <Share2 className="mr-2 h-4 w-4" /> {t("Share Summary", "सारांश साझा करें")}
           </Button>
           <Button onClick={handlePrint} variant="outline" disabled={!selectedFarmerId}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
           </Button>
         </div>
       </CardHeader>
@@ -241,35 +245,35 @@ const FarmerStatementReport: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div>
-                <p><span className="font-semibold">Farmer Name:</span> {selectedFarmer.farmerName}</p>
-                <p><span className="font-semibold">Father's Name:</span> {selectedFarmer.fathersName}</p>
-                <p><span className="font-semibold">Village:</span> {selectedFarmer.village}</p>
+                <p><span className="font-semibold">{t("Farmer Name:", "किसान का नाम:")}</span> {selectedFarmer.farmerName}</p>
+                <p><span className="font-semibold">{t("Father's Name:", "पिता का नाम:")}</span> {selectedFarmer.fathersName}</p>
+                <p><span className="font-semibold">{t("Village:", "गाँव:")}</span> {selectedFarmer.village}</p>
               </div>
               <div>
-                <p><span className="font-semibold">Mobile No:</span> {selectedFarmer.mobileNo}</p>
-                <p><span className="font-semibold">Account Name:</span> {selectedFarmer.accountName}</p>
-                <p><span className="font-semibold">Account No:</span> {selectedFarmer.accountNo}</p>
-                <p><span className="font-semibold">IFSC Code:</span> {selectedFarmer.ifscCode}</p>
+                <p><span className="font-semibold">{t("Mobile No:", "मोबाइल नंबर:")}</span> {selectedFarmer.mobileNo}</p>
+                <p><span className="font-semibold">{t("Account Name:", "खाता नाम:")}</span> {selectedFarmer.accountName}</p>
+                <p><span className="font-semibold">{t("Account No:", "खाता संख्या:")}</span> {selectedFarmer.accountNo}</p>
+                <p><span className="font-semibold">{t("IFSC Code:", "आईएफएससी कोड:")}</span> {selectedFarmer.ifscCode}</p>
               </div>
             </div>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Debit (₹)</TableHead>
-                    <TableHead className="text-right">Credit (₹)</TableHead>
-                    <TableHead className="text-right">Balance (₹)</TableHead>
+                    <TableHead>{t("Date", "दिनांक")}</TableHead>
+                    <TableHead>{t("Time", "समय")}</TableHead>
+                    <TableHead>{t("Type", "प्रकार")}</TableHead>
+                    <TableHead>{t("Description", "विवरण")}</TableHead>
+                    <TableHead className="text-right">{t("Debit (₹)", "डेबिट (₹)")}</TableHead>
+                    <TableHead className="text-right">{t("Credit (₹)", "क्रेडिट (₹)")}</TableHead>
+                    <TableHead className="text-right">{t("Balance (₹)", "शेष (₹)")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {statement.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                        No transactions found for this farmer in the selected date range.
+                        {t("No transactions found for this farmer in the selected date range.", "इस किसान के लिए चयनित तिथि सीमा में कोई लेनदेन नहीं मिला।")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -277,7 +281,7 @@ const FarmerStatementReport: React.FC = () => {
                       <TableRow key={index}>
                         <TableCell>{entry.date}</TableCell>
                         <TableCell>{entry.time}</TableCell>
-                        <TableCell>{entry.type}</TableCell>
+                        <TableCell>{t(entry.type, entry.type === "Sale" ? "बिक्री" : entry.type === "Purchase" ? "खरीद" : entry.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</TableCell>
                         <TableCell>{entry.description}</TableCell>
                         <TableCell className="text-right">{entry.debit.toFixed(2)}</TableCell>
                         <TableCell className="text-right">{entry.credit.toFixed(2)}</TableCell>
@@ -292,7 +296,7 @@ const FarmerStatementReport: React.FC = () => {
             </div>
             {statement.length > 0 && (
               <div className="flex justify-end items-center mt-4 p-3 bg-muted rounded-md">
-                <p className="text-lg font-bold mr-4">Net Balance:</p>
+                <p className="text-lg font-bold mr-4">{t("Net Balance:", "शुद्ध शेष:")}</p>
                 <p className={`text-xl font-bold ${netBalance >= 0 ? "text-red-600" : "text-green-600"}`}>
                   ₹ {netBalance.toFixed(2)}
                 </p>
@@ -301,7 +305,7 @@ const FarmerStatementReport: React.FC = () => {
           </div>
         ) : (
           <p className="text-center text-muted-foreground h-24 flex items-center justify-center">
-            Please select a farmer to view their statement.
+            {t("Please select a farmer to view their statement.", "कृपया उनका विवरण देखने के लिए एक किसान चुनें।")}
           </p>
         )}
       </CardContent>

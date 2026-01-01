@@ -8,23 +8,27 @@ import DailyTransactionSummaryReport from "@/components/reports/DailyTransaction
 import ItemStockReport from "@/components/reports/ItemStockReport"; // New import
 import ItemMovementReport from "@/components/reports/ItemMovementReport"; // New import
 import ConsolidatedTransactionReport from "@/components/reports/ConsolidatedTransactionReport"; // New import
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 const ReportsPage: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <div className="space-y-6 p-4">
-      <h1 className="text-3xl font-bold">Business Reports</h1>
+      <h1 className="text-3xl font-bold">{t("Business Reports", "व्यापार रिपोर्ट")}</h1>
       <p className="text-lg text-muted-foreground">
-        Gain insights into your business performance with various detailed reports.
+        {t("Gain insights into your business performance with various detailed reports.", "विभिन्न विस्तृत रिपोर्टों के साथ अपने व्यवसाय के प्रदर्शन में अंतर्दृष्टि प्राप्त करें।")}
       </p>
 
       <Tabs defaultValue="farmer-balances" className="w-full">
         <TabsList className="grid w-full grid-cols-3 md:w-fit lg:grid-cols-6"> {/* Updated grid-cols */}
-          <TabsTrigger value="farmer-balances">Farmer Balances</TabsTrigger>
-          <TabsTrigger value="farmer-statement">Farmer Statement</TabsTrigger>
-          <TabsTrigger value="daily-summary">Daily Summary</TabsTrigger>
-          <TabsTrigger value="item-stock">Item Stock</TabsTrigger> {/* New Tab */}
-          <TabsTrigger value="item-movement">Item Movement</TabsTrigger> {/* New Tab */}
-          <TabsTrigger value="consolidated-transactions">All Transactions</TabsTrigger> {/* New Tab */}
+          <TabsTrigger value="farmer-balances">{t("Farmer Balances", "किसान शेष")}</TabsTrigger>
+          <TabsTrigger value="farmer-statement">{t("Farmer Statement", "किसान विवरण")}</TabsTrigger>
+          <TabsTrigger value="daily-summary">{t("Daily Summary", "दैनिक सारांश")}</TabsTrigger>
+          <TabsTrigger value="item-stock">{t("Item Stock", "आइटम स्टॉक")}</TabsTrigger> {/* New Tab */}
+          <TabsTrigger value="item-movement">{t("Item Movement", "आइटम आवाजाही")}</TabsTrigger> {/* New Tab */}
+          <TabsTrigger value="consolidated-transactions">{t("All Transactions", "सभी लेनदेन")}</TabsTrigger> {/* New Tab */}
         </TabsList>
 
         <TabsContent value="farmer-balances">

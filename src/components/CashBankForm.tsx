@@ -22,6 +22,7 @@ import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balance
 import { CompleteSalesInvoice } from "./SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm";
 import { Share2 } from "lucide-react"; // Import Share2 icon
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface Farmer {
   id: string;
@@ -54,6 +55,7 @@ interface CashBankFormProps {
 }
 
 const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCancel }) => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
@@ -184,18 +186,20 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
     window.open(whatsappUrl, '_blank');
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold">{initialData ? "Edit Transaction" : "Record Payment"}</CardTitle>
+        <CardTitle className="text-2xl font-bold">{initialData ? t("Edit Transaction", "लेनदेन संपादित करें") : t("Record Payment", "भुगतान दर्ज करें")}</CardTitle>
         <CardDescription>
-          {initialData ? `Editing transaction ID: ${initialData.id.substring(0, 8)}...` : "Add a new payment in or out transaction."}
+          {initialData ? t(`Editing transaction ID: ${initialData.id.substring(0, 8)}...`, `लेनदेन आईडी संपादित कर रहा है: ${initialData.id.substring(0, 8)}...`) : t("Add a new payment in or out transaction.", "नया भुगतान अंदर या बाहर लेनदेन जोड़ें।")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="transactionType">Transaction Type</Label>
+            <Label htmlFor="transactionType">{t("Transaction Type", "लेनदेन का प्रकार")}</Label>
             <RadioGroup
               onValueChange={(value: "Payment In" | "Payment Out") => setValue("transactionType", value, { shouldValidate: true })}
               value={watch("transactionType")}
@@ -203,11 +207,11 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="Payment In" id="payment-in" />
-                <Label htmlFor="payment-in">Payment In</Label>
+                <Label htmlFor="payment-in">{t("Payment In", "भुगतान अंदर")}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="Payment Out" id="payment-out" />
-                <Label htmlFor="payment-out">Payment Out</Label>
+                <Label htmlFor="payment-out">{t("Payment Out", "भुगतान बाहर")}</Label>
               </div>
             </RadioGroup>
             {errors.transactionType && (
@@ -216,10 +220,10 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="farmerId">Select Farmer</Label>
+            <Label htmlFor="farmerId">{t("Select Farmer", "किसान चुनें")}</Label>
             <Select onValueChange={(value) => setValue("farmerId", value, { shouldValidate: true })} value={selectedFarmerId}>
               <SelectTrigger id="farmerId">
-                <SelectValue placeholder="Select a farmer" />
+                <SelectValue placeholder={t("Select a farmer", "एक किसान चुनें")} />
               </SelectTrigger>
               <SelectContent>
                 {allFarmers.map((farmer) => (
@@ -236,7 +240,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
 
           {selectedFarmer && (
             <div className="flex justify-between items-center p-3 bg-muted rounded-md">
-              <p className="text-sm font-medium">Current Due Balance for {selectedFarmer.farmerName}:</p>
+              <p className="text-sm font-medium">{t(`Current Due Balance for ${selectedFarmer.farmerName}:`, `${selectedFarmer.farmerName} के लिए वर्तमान देय शेष:`)}</p>
               <p className={`text-lg font-semibold ${currentFarmerDue >= 0 ? "text-red-600" : "text-green-600"}`}>
                 ₹ {currentFarmerDue.toFixed(2)}
               </p>
@@ -244,7 +248,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount">{t("Amount", "राशि")}</Label>
             <Input id="amount" type="number" step="0.01" placeholder="0.00" {...form.register("amount")} />
             {errors.amount && (
               <p className="text-red-500 text-sm">{errors.amount.message}</p>
@@ -252,7 +256,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="paymentMethod">Payment Method</Label>
+            <Label htmlFor="paymentMethod">{t("Payment Method", "भुगतान विधि")}</Label>
             <RadioGroup
               onValueChange={(value: "Cash" | "Bank") => setValue("paymentMethod", value, { shouldValidate: true })}
               value={watch("paymentMethod")}
@@ -260,11 +264,11 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="Cash" id="cash" />
-                <Label htmlFor="cash">Cash</Label>
+                <Label htmlFor="cash">{t("Cash", "नकद")}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="Bank" id="bank" />
-                <Label htmlFor="bank">Bank</Label>
+                <Label htmlFor="bank">{t("Bank", "बैंक")}</Label>
               </div>
             </RadioGroup>
             {errors.paymentMethod && (
@@ -273,13 +277,13 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="remarks">Remarks (Optional)</Label>
-            <Textarea id="remarks" placeholder="Add any notes here..." {...form.register("remarks")} />
+            <Label htmlFor="remarks">{t("Remarks (Optional)", "टिप्पणियाँ (वैकल्पिक)")}</Label>
+            <Textarea id="remarks" placeholder={t("Add any notes here...", "यहां कोई भी नोट जोड़ें...")} {...form.register("remarks")} />
           </div>
 
           <div className="flex justify-end space-x-2 print-hide">
-            <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit">{initialData ? "Update Transaction" : "Record Transaction"}</Button>
+            <Button type="button" variant="outline" onClick={onCancel}>{t("Cancel", "रद्द करें")}</Button>
+            <Button type="submit">{initialData ? t("Update Transaction", "लेनदेन अपडेट करें") : t("Record Transaction", "लेनदेन दर्ज करें")}</Button>
             {initialData && ( // Only show WhatsApp button if editing/viewing an existing transaction
               <Button type="button" onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || !selectedFarmer.mobileNo}>
                 <Share2 className="mr-2 h-4 w-4" /> WhatsApp

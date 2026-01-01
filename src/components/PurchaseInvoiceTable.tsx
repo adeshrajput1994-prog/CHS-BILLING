@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm"; // Import the interface
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface PurchaseInvoiceTableProps {
   invoices: CompletePurchaseInvoice[];
@@ -33,25 +34,28 @@ interface PurchaseInvoiceTableProps {
 }
 
 const PurchaseInvoiceTable: React.FC<PurchaseInvoiceTableProps> = ({ invoices, onView, onEdit, onDelete }) => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Purchase No</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Farmer Name</TableHead>
-            <TableHead>Total Amount</TableHead>
-            <TableHead>Advance</TableHead>
-            <TableHead>Due</TableHead>
-            <TableHead className="text-center">Actions</TableHead>
+            <TableHead>{t("Purchase No", "खरीद संख्या")}</TableHead>
+            <TableHead>{t("Date", "दिनांक")}</TableHead>
+            <TableHead>{t("Farmer Name", "किसान का नाम")}</TableHead>
+            <TableHead>{t("Total Amount", "कुल राशि")}</TableHead>
+            <TableHead>{t("Advance", "अग्रिम")}</TableHead>
+            <TableHead>{t("Due", "देय")}</TableHead>
+            <TableHead className="text-center">{t("Actions", "कार्यवाई")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {invoices.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                No purchase invoices found.
+                {t("No purchase invoices found.", "कोई खरीद चालान नहीं मिला।")}
               </TableCell>
             </TableRow>
           ) : (
@@ -72,32 +76,32 @@ const PurchaseInvoiceTable: React.FC<PurchaseInvoiceTableProps> = ({ invoices, o
                 <TableCell className="flex justify-center space-x-2">
                   <Button variant="ghost" size="icon" onClick={() => onView(invoice)}>
                     <Eye className="h-4 w-4 text-blue-600" />
-                    <span className="sr-only">View</span>
+                    <span className="sr-only">{t("View", "देखें")}</span>
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => onEdit(invoice)}>
                     <Pencil className="h-4 w-4 text-green-600" />
-                    <span className="sr-only">Edit</span>
+                    <span className="sr-only">{t("Edit", "संपादित करें")}</span>
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">
                         <Trash2 className="h-4 w-4 text-red-600" />
-                        <span className="sr-only">Delete</span>
+                        <span className="sr-only">{t("Delete", "हटाएँ")}</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("Are you absolutely sure?", "क्या आप पूरी तरह से निश्चित हैं?")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete purchase invoice
+                          {t("This action cannot be undone. This will permanently delete purchase invoice", "यह कार्रवाई पूर्ववत नहीं की जा सकती। यह खरीद चालान को स्थायी रूप से हटा देगा")}
                           <span className="font-bold"> {invoice.purchaseNo} </span>
-                          and remove its data from our records.
+                          {t("and remove its data from our records.", "और हमारे रिकॉर्ड से इसका डेटा हटा देगा।")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t("Cancel", "रद्द करें")}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => onDelete(invoice.id)} className="bg-red-600 hover:bg-red-700">
-                          Delete
+                          {t("Delete", "हटाएँ")}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

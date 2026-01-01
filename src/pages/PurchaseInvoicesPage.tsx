@@ -8,6 +8,7 @@ import PurchaseInvoiceTable from "@/components/PurchaseInvoiceTable";
 import { Input } from "@/components/ui/input";
 import { showSuccess } from "@/utils/toast";
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 // Helper function to get the next purchase number (e.g., P-YYYYMMDD-001)
 const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
@@ -29,6 +30,7 @@ const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
 };
 
 const PurchaseInvoicesPage: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [invoices, setInvoices] = useState<CompletePurchaseInvoice[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit' | 'view'>('list');
   const [editingInvoice, setEditingInvoice] = useState<CompletePurchaseInvoice | null>(null);
@@ -145,17 +147,19 @@ const PurchaseInvoicesPage: React.FC = () => {
     invoice.purchaseDate.includes(searchTerm)
   );
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <div className="space-y-6 p-4">
       <div className="flex justify-between items-center print-hide">
-        <h1 className="text-3xl font-bold">Purchase Invoices</h1>
+        <h1 className="text-3xl font-bold">{t("Purchase Invoices", "खरीद चालान")}</h1>
         <div className="flex space-x-2">
           <Button onClick={handlePrintList} variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print List
+            <Printer className="mr-2 h-4 w-4" /> {t("Print List", "सूची प्रिंट करें")}
           </Button>
           {viewMode === 'list' && (
             <Button onClick={handleOpenAddForm} className="bg-green-600 hover:bg-green-700">
-              <Plus className="mr-2 h-4 w-4" /> Create New Invoice
+              <Plus className="mr-2 h-4 w-4" /> {t("Create New Invoice", "नया चालान बनाएँ")}
             </Button>
           )}
         </div>
@@ -164,7 +168,7 @@ const PurchaseInvoicesPage: React.FC = () => {
       {viewMode === 'list' && (
         <>
           <Input
-            placeholder="Search invoices by number or farmer name..."
+            placeholder={t("Search invoices by number or farmer name...", "चालान संख्या या किसान के नाम से खोजें...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm print-hide"

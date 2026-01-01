@@ -24,8 +24,10 @@ import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction } from "@/utils/balanceCalculations";
 import { showError } from "@/utils/toast";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 const DailyTransactionSummaryReport: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
@@ -110,12 +112,14 @@ const DailyTransactionSummaryReport: React.FC = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-2xl font-bold">Daily Transaction Summary</CardTitle>
-          <CardDescription>Overview of transactions for {displayDate}.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("Daily Transaction Summary", "दैनिक लेनदेन सारांश")}</CardTitle>
+          <CardDescription>{t(`Overview of transactions for ${displayDate}.`, `${displayDate} के लिए लेनदेन का अवलोकन।`)}</CardDescription>
         </div>
         <div className="flex space-x-2 print-hide">
           <Popover>
@@ -128,7 +132,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
+                {date ? format(date, "PPP") : <span>{t("Pick a date", "एक तारीख चुनें")}</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -141,10 +145,10 @@ const DailyTransactionSummaryReport: React.FC = () => {
             </PopoverContent>
           </Popover>
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={!date}>
-            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+            <Share2 className="mr-2 h-4 w-4" /> {t("Share Summary", "सारांश साझा करें")}
           </Button>
           <Button onClick={handlePrint} variant="outline" disabled={!date}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
           </Button>
         </div>
       </CardHeader>
@@ -153,21 +157,21 @@ const DailyTransactionSummaryReport: React.FC = () => {
           <>
             {/* Sales Summary */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Sales Summary</h3>
+              <h3 className="text-lg font-semibold">{t("Sales Summary", "बिक्री सारांश")}</h3>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Invoice No</TableHead>
-                      <TableHead>Farmer Name</TableHead>
-                      <TableHead className="text-right">Total Amount</TableHead>
+                      <TableHead>{t("Invoice No", "चालान संख्या")}</TableHead>
+                      <TableHead>{t("Farmer Name", "किसान का नाम")}</TableHead>
+                      <TableHead className="text-right">{t("Total Amount", "कुल राशि")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {dailySales.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3} className="h-12 text-center text-muted-foreground">
-                          No sales recorded for this date.
+                          {t("No sales recorded for this date.", "इस तारीख के लिए कोई बिक्री दर्ज नहीं की गई है।")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -180,7 +184,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                       ))
                     )}
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={2}>Total Sales</TableCell>
+                      <TableCell colSpan={2}>{t("Total Sales", "कुल बिक्री")}</TableCell>
                       <TableCell className="text-right">₹ {totalSalesAmount.toFixed(2)}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -190,21 +194,21 @@ const DailyTransactionSummaryReport: React.FC = () => {
 
             {/* Purchase Summary */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Purchase Summary</h3>
+              <h3 className="text-lg font-semibold">{t("Purchase Summary", "खरीद सारांश")}</h3>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Purchase No</TableHead>
-                      <TableHead>Farmer Name</TableHead>
-                      <TableHead className="text-right">Total Amount</TableHead>
+                      <TableHead>{t("Purchase No", "खरीद संख्या")}</TableHead>
+                      <TableHead>{t("Farmer Name", "किसान का नाम")}</TableHead>
+                      <TableHead className="text-right">{t("Total Amount", "कुल राशि")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {dailyPurchases.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3} className="h-12 text-center text-muted-foreground">
-                          No purchases recorded for this date.
+                          {t("No purchases recorded for this date.", "इस तारीख के लिए कोई खरीद दर्ज नहीं की गई है।")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -217,7 +221,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                       ))
                     )}
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={2}>Total Purchases</TableCell>
+                      <TableCell colSpan={2}>{t("Total Purchases", "कुल खरीद")}</TableCell>
                       <TableCell className="text-right">₹ {totalPurchaseAmount.toFixed(2)}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -227,44 +231,44 @@ const DailyTransactionSummaryReport: React.FC = () => {
 
             {/* Cash & Bank Summary */}
             <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Cash & Bank Summary</h3>
+              <h3 className="text-lg font-semibold">{t("Cash & Bank Summary", "नकद और बैंक सारांश")}</h3>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Farmer</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>{t("Type", "प्रकार")}</TableHead>
+                      <TableHead>{t("Farmer", "किसान")}</TableHead>
+                      <TableHead>{t("Method", "विधि")}</TableHead>
+                      <TableHead className="text-right">{t("Amount", "राशि")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {dailyCashBank.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} className="h-12 text-center text-muted-foreground">
-                          No cash/bank transactions for this date.
+                          {t("No cash/bank transactions for this date.", "इस तारीख के लिए कोई नकद/बैंक लेनदेन नहीं है।")}
                         </TableCell>
                       </TableRow>
                     ) : (
                       dailyCashBank.map(txn => (
                         <TableRow key={txn.id}>
-                          <TableCell>{txn.type}</TableCell>
+                          <TableCell>{t(txn.type, txn.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</TableCell>
                           <TableCell>{txn.farmerName}</TableCell>
-                          <TableCell>{txn.paymentMethod}</TableCell>
+                          <TableCell>{t(txn.paymentMethod, txn.paymentMethod === "Cash" ? "नकद" : "बैंक")}</TableCell>
                           <TableCell className="text-right">₹ {txn.amount.toFixed(2)}</TableCell>
                         </TableRow>
                       ))
                     )}
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={3}>Total Payment In</TableCell>
+                      <TableCell colSpan={3}>{t("Total Payment In", "कुल भुगतान अंदर")}</TableCell>
                       <TableCell className="text-right text-green-600">₹ {totalCashIn.toFixed(2)}</TableCell>
                     </TableRow>
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={3}>Total Payment Out</TableCell>
+                      <TableCell colSpan={3}>{t("Total Payment Out", "कुल भुगतान बाहर")}</TableCell>
                       <TableCell className="text-right text-red-600">₹ {totalCashOut.toFixed(2)}</TableCell>
                     </TableRow>
                     <TableRow className="font-bold bg-muted/50">
-                      <TableCell colSpan={3}>Net Cash Flow</TableCell>
+                      <TableCell colSpan={3}>{t("Net Cash Flow", "शुद्ध नकद प्रवाह")}</TableCell>
                       <TableCell className={`text-right ${ netCashFlow >= 0 ? "text-green-600" : "text-red-600"}`}>
                         ₹ {netCashFlow.toFixed(2)}
                       </TableCell>
@@ -276,7 +280,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
           </>
         ) : (
           <p className="text-center text-muted-foreground h-48 flex items-center justify-center">
-            Please select a date to view the daily summary.
+            {t("Please select a date to view the daily summary.", "दैनिक सारांश देखने के लिए कृपया एक तारीख चुनें।")}
           </p>
         )}
       </CardContent>

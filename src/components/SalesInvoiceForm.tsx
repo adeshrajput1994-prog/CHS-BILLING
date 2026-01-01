@@ -36,6 +36,7 @@ import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 import { Item as GlobalItem } from "./ItemForm"; // Import Item interface from ItemForm
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -110,6 +111,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
   currentInvoiceTime,
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
   const [allItems, setAllItems] = useState<GlobalItem[]>([]); // Use GlobalItem for stock management
   const [salesItems, setSalesItems] = useState<SalesItem[]>(initialData?.items || []);
@@ -358,39 +360,43 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     setIsAddFarmerDialogOpen(false); // Close the dialog
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <div className="space-y-6 p-4">
       <div className="flex justify-end items-center space-x-2 print-hide mb-4">
         <Button variant="outline" onClick={() => console.log("Save functionality not implemented yet.")}>
-          <Save className="mr-2 h-4 w-4" /> Save
+          <Save className="mr-2 h-4 w-4" /> {t("Save", "सहेजें")}
         </Button>
         <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || salesItems.length === 0}>
           <Share2 className="mr-2 h-4 w-4" /> WhatsApp
         </Button>
         <Button onClick={handlePrint} variant="outline">
-          <Printer className="mr-2 h-4 w-4" /> Print
+          <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {t("Cancel", "रद्द करें")}
+        </Button>
       </div>
 
       <form onSubmit={salesForm.handleSubmit(onSubmitSalesInvoice, onErrorSalesForm)} className="space-y-6">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-4xl font-extrabold mb-2">{selectedCompany?.name || "COMPANY NAME"}</h2>
-          <p className="text-md text-muted-foreground">{selectedCompany?.address || "COMPANY ADDRESS"}</p>
+          <h2 className="text-4xl font-extrabold mb-2">{selectedCompany?.name || t("COMPANY NAME", "कंपनी का नाम")}</h2>
+          <p className="text-md text-muted-foreground">{selectedCompany?.address || t("COMPANY ADDRESS", "कंपनी का पता")}</p>
         </div>
 
         {/* Invoice Details & Farmer Selection */}
         <Card>
           <CardContent className="space-y-4 p-6">
             <div className="grid grid-cols-2 gap-4 items-center">
-              <Label htmlFor="invoiceNo" className="text-right">INVOICE NO</Label>
+              <Label htmlFor="invoiceNo" className="text-right">{t("INVOICE NO", "चालान संख्या")}</Label>
               <Input id="invoiceNo" value={currentInvoiceNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="farmerId" className="text-right">FARMER ID</Label>
+              <Label htmlFor="farmerId" className="text-right">{t("FARMER ID", "किसान आईडी")}</Label>
               <Input id="farmerId" value={selectedFarmer?.id || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="farmerNameDisplay" className="text-right">FARMER</Label>
+              <Label htmlFor="farmerNameDisplay" className="text-right">{t("FARMER", "किसान")}</Label>
               <div className="flex items-center space-x-2 print-hide">
                 <Popover open={openFarmerSelect} onOpenChange={setOpenFarmerSelect}>
                   <PopoverTrigger asChild>
@@ -402,14 +408,14 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                     >
                       {selectedFarmer
                         ? selectedFarmer.farmerName
-                        : "Select farmer..."}
+                        : t("Select farmer...", "किसान चुनें...")}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[200px] p-0">
                     <Command>
-                      <CommandInput placeholder="Search farmer..." />
-                      <CommandEmpty>No farmer found.</CommandEmpty>
+                      <CommandInput placeholder={t("Search farmer...", "किसान खोजें...")} />
+                      <CommandEmpty>{t("No farmer found.", "कोई किसान नहीं मिला।")}</CommandEmpty>
                       <CommandGroup>
                         {allFarmers.map((farmer) => (
                           <CommandItem
@@ -437,14 +443,14 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                   <DialogTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0">
                       <Plus className="h-4 w-4" />
-                      <span className="sr-only">Add New Farmer</span>
+                      <span className="sr-only">{t("Add New Farmer", "नया किसान जोड़ें")}</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                      <DialogTitle>Add New Farmer</DialogTitle>
+                      <DialogTitle>{t("Add New Farmer", "नया किसान जोड़ें")}</DialogTitle>
                       <DialogDescription>
-                        Fill in the details to add a new farmer.
+                        {t("Fill in the details to add a new farmer.", "नया किसान जोड़ने के लिए विवरण भरें।")}
                       </DialogDescription>
                     </DialogHeader>
                     <FarmersForm onSave={handleQuickAddFarmerSave} onCancel={handleQuickAddFarmerCancel} />
@@ -457,37 +463,37 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 <p className="text-red-500 text-sm col-span-2 text-right print-hide">{salesForm.formState.errors.selectedFarmerId.message}</p>
               )}
 
-              <Label htmlFor="village" className="text-right">VILLAGE</Label>
+              <Label htmlFor="village" className="text-right">{t("VILLAGE", "गाँव")}</Label>
               <Input id="village" value={selectedFarmer?.village || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="accountName" className="text-right">ACCOUNT NAME</Label>
+              <Label htmlFor="accountName" className="text-right">{t("ACCOUNT NAME", "खाता नाम")}</Label>
               <Input id="accountName" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="accountNo" className="text-right">ACCOUNT NO</Label>
+              <Label htmlFor="accountNo" className="text-right">{t("ACCOUNT NO", "खाता संख्या")}</Label>
               <Input id="accountNo" value={selectedFarmer?.accountNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="ifscCode" className="text-right">IFSC</Label>
+              <Label htmlFor="ifscCode" className="text-right">{t("IFSC", "आईएफएससी")}</Label>
               <Input id="ifscCode" value={selectedFarmer?.ifscCode || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
               {/* Right column fields */}
               <div className="col-start-2 row-start-1 flex items-center space-x-2">
-                <Label htmlFor="invoiceDate" className="w-1/2 text-right">DATE</Label>
+                <Label htmlFor="invoiceDate" className="w-1/2 text-right">{t("DATE", "दिनांक")}</Label>
                 <Input id="invoiceDate" value={currentInvoiceDate} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-2 flex items-center space-x-2">
-                <Label htmlFor="fathersName" className="w-1/2 text-right">FATHER</Label>
+                <Label htmlFor="fathersName" className="w-1/2 text-right">{t("FATHER", "पिता")}</Label>
                 <Input id="fathersName" value={selectedFarmer?.fathersName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-3 flex items-center space-x-2">
-                <Label htmlFor="mobileNo" className="w-1/2 text-right">MOBILE NO</Label>
+                <Label htmlFor="mobileNo" className="w-1/2 text-right">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
                 <Input id="mobileNo" value={selectedFarmer?.mobileNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-4 flex items-center space-x-2">
-                <Label htmlFor="invoiceTime" className="w-1/2 text-right">TIME</Label>
+                <Label htmlFor="invoiceTime" className="w-1/2 text-right">{t("TIME", "समय")}</Label>
                 <Input id="invoiceTime" value={currentInvoiceTime} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-5 flex items-center space-x-2">
-                <Label htmlFor="bank" className="w-1/2 text-right">BANK</Label>
+                <Label htmlFor="bank" className="w-1/2 text-right">{t("BANK", "बैंक")}</Label>
                 <Input id="bank" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" /> {/* Assuming bank name is account name */}
               </div>
             </div>
@@ -497,14 +503,14 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         {/* Add Item Section */}
         <Card className="print-hide">
           <CardHeader>
-            <CardTitle>Add Items</CardTitle>
-            <CardDescription>Enter item details to add to the invoice.</CardDescription>
+            <CardTitle>{t("Add Items", "आइटम जोड़ें")}</CardTitle>
+            <CardDescription>{t("Enter item details to add to the invoice.", "चालान में जोड़ने के लिए आइटम विवरण दर्ज करें।")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={itemForm.handleSubmit(handleAddItem, onErrorItemForm)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="selectedItemId">ITEM</Label>
+                  <Label htmlFor="selectedItemId">{t("ITEM", "आइटम")}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -514,14 +520,14 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                       >
                         {selectedItemForAdd
                           ? allItems.find((item) => item.id === selectedItemForAdd)?.itemName
-                          : "Select item..."}
+                          : t("Select item...", "आइटम चुनें...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput placeholder="Search item..." />
-                        <CommandEmpty>No item found.</CommandEmpty>
+                        <CommandInput placeholder={t("Search item...", "आइटम खोजें...")} />
+                        <CommandEmpty>{t("No item found.", "कोई आइटम नहीं मिला।")}</CommandEmpty>
                         <CommandGroup>
                           {allItems.map((item) => (
                             <CommandItem
@@ -549,23 +555,23 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="weight">WEIGHT (KG)</Label>
+                  <Label htmlFor="weight">{t("WEIGHT (KG)", "वजन (KG)")}</Label>
                   <Input id="weight" type="number" step="0.01" placeholder="0.00" {...itemForm.register("weight")} />
                   {itemForm.formState.errors.weight && (
                     <p className="text-red-500 text-sm">{itemForm.formState.errors.weight.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ratePerKgDisplay">RATE</Label>
+                  <Label htmlFor="ratePerKgDisplay">{t("RATE", "दर")}</Label>
                   <Input id="ratePerKgDisplay" value={currentItemRate.toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="amountDisplay">AMOUNT</Label>
+                  <Label htmlFor="amountDisplay">{t("AMOUNT", "राशि")}</Label>
                   <Input id="amountDisplay" value={(itemForm.watch("weight") * currentItemRate).toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                 </div>
               </div>
               <Button type="button" onClick={itemForm.handleSubmit(handleAddItem, onErrorItemForm)} className="w-full">
-                <Plus className="mr-2 h-4 w-4" /> Add Item
+                <Plus className="mr-2 h-4 w-4" /> {t("Add Item", "आइटम जोड़ें")}
               </Button>
             </form>
           </CardContent>
@@ -574,27 +580,27 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         {/* Items Table */}
         <Card>
           <CardHeader className="print-hide">
-            <CardTitle>Sales Items</CardTitle>
-            <CardDescription>List of items in this sales invoice.</CardDescription>
+            <CardTitle>{t("Sales Items", "बिक्री के आइटम")}</CardTitle>
+            <CardDescription>{t("List of items in this sales invoice.", "इस बिक्री चालान में आइटमों की सूची।")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">S.No</TableHead>
-                    <TableHead>ITEM</TableHead>
-                    <TableHead>WEIGHT</TableHead>
-                    <TableHead>RATE</TableHead>
-                    <TableHead className="text-right">AMOUNT</TableHead>
-                    <TableHead className="text-center print-hide">Actions</TableHead>
+                    <TableHead className="w-[50px]">{t("S.No", "क्र.सं.")}</TableHead>
+                    <TableHead>{t("ITEM", "आइटम")}</TableHead>
+                    <TableHead>{t("WEIGHT", "वजन")}</TableHead>
+                    <TableHead>{t("RATE", "दर")}</TableHead>
+                    <TableHead className="text-right">{t("AMOUNT", "राशि")}</TableHead>
+                    <TableHead className="text-center print-hide">{t("Actions", "कार्यवाई")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {salesItems.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                        No items added yet.
+                        {t("No items added yet.", "अभी तक कोई आइटम नहीं जोड़ा गया है।")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -608,7 +614,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                         <TableCell className="text-center print-hide">
                           <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.uniqueId)}>
                             <Trash2 className="h-4 w-4 text-red-600" />
-                            <span className="sr-only">Delete</span>
+                            <span className="sr-only">{t("Delete", "हटाएँ")}</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -624,10 +630,10 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         <Card>
           <CardContent className="space-y-4 p-6">
             <div className="grid grid-cols-2 gap-4 items-center">
-              <Label className="text-right font-medium">TOTAL AMOUNT</Label>
+              <Label className="text-right font-medium">{t("TOTAL AMOUNT", "कुल राशि")}</Label>
               <Input value={`₹ ${totalAmount.toFixed(2)}`} readOnly disabled className="bg-gray-100 dark:bg-gray-800 text-lg font-semibold" />
 
-              <Label htmlFor="advance" className="text-right font-medium print-hide">ADVANCE</Label>
+              <Label htmlFor="advance" className="text-right font-medium print-hide">{t("ADVANCE", "अग्रिम")}</Label>
               <Input
                 id="advance"
                 type="number"
@@ -640,7 +646,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 <p className="text-red-500 text-sm col-span-2 text-right print-hide">{salesForm.formState.errors.advance.message}</p>
               )}
 
-              <Label className="text-right font-bold">DUE</Label>
+              <Label className="text-right font-bold">{t("DUE", "देय")}</Label>
               <Input
                 value={`₹ ${dueAmount.toFixed(2)}`}
                 readOnly
@@ -648,18 +654,18 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 className={`bg-gray-100 dark:bg-gray-800 text-2xl font-bold ${dueAmount >= 0 ? "text-red-600" : "text-green-600"}`}
               />
             </div>
-            <Button type="submit" className="w-full mt-6 print-hide">{initialData ? "Update Sales Invoice" : "Create Sales Invoice"}</Button>
+            <Button type="submit" className="w-full mt-6 print-hide">{initialData ? t("Update Sales Invoice", "बिक्री चालान अपडेट करें") : t("Create Sales Invoice", "बिक्री चालान बनाएँ")}</Button>
           </CardContent>
         </Card>
 
         {/* Signatures */}
         <div className="flex justify-between mt-8 pt-8 border-t border-dashed">
           <div className="text-center">
-            <p className="font-semibold">FARMER SIGN</p>
+            <p className="font-semibold">{t("FARMER SIGN", "किसान के हस्ताक्षर")}</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>
           </div>
           <div className="text-center">
-            <p className="font-semibold">MANGER SIGN</p>
+            <p className="font-semibold">{t("MANGER SIGN", "प्रबंधक के हस्ताक्षर")}</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>
           </div>
         </div>

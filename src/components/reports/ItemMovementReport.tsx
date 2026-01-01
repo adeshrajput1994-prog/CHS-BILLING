@@ -21,6 +21,7 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface ItemMovementSummary {
   item: GlobalItem;
@@ -31,6 +32,7 @@ interface ItemMovementSummary {
 }
 
 const ItemMovementReport: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [allItems, setAllItems] = useState<GlobalItem[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
@@ -168,16 +170,16 @@ const ItemMovementReport: React.FC = () => {
       : "";
 
     tempDiv.innerHTML = `
-      <h1 style="text-align: center; margin-bottom: 20px;">Item Movement Report${dateRangeTitle}</h1>
+      <h1 style="text-align: center; margin-bottom: 20px;">${t("Item Movement Report", "आइटम आवाजाही रिपोर्ट")}${dateRangeTitle}</h1>
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f2f2f2;">
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item ID</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item Name</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Sales (KG)</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Purchases (KG)</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Net Movement (KG)</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Current Stock (KG)</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Item ID", "आइटम आईडी")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Item Name", "आइटम का नाम")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">${t("Sales (KG)", "बिक्री (KG)")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">${t("Purchases (KG)", "खरीद (KG)")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">${t("Net Movement (KG)", "शुद्ध आवाजाही (KG)")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">${t("Current Stock (KG)", "वर्तमान स्टॉक (KG)")}</th>
           </tr>
         </thead>
         <tbody>
@@ -195,39 +197,41 @@ const ItemMovementReport: React.FC = () => {
       </table>
     `;
 
-    exportToPdf(tempDivId, "Item_Movement_Report", `Item Movement Report${dateRangeTitle}`).finally(() => {
+    exportToPdf(tempDivId, "Item_Movement_Report", t("Item Movement Report", "आइटम आवाजाही रिपोर्ट") + dateRangeTitle).finally(() => {
       if (tempDiv && tempDiv.parentNode) {
         tempDiv.parentNode.removeChild(tempDiv);
       }
     });
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-2xl font-bold">Item Movement Report</CardTitle>
-          <CardDescription>Track sales and purchases of items over a selected period.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("Item Movement Report", "आइटम आवाजाही रिपोर्ट")}</CardTitle>
+          <CardDescription>{t("Track sales and purchases of items over a selected period.", "चयनित अवधि में आइटमों की बिक्री और खरीद को ट्रैक करें।")}</CardDescription>
         </div>
         <div className="flex space-x-2 print-hide">
           <Input
-            placeholder="Search items..."
+            placeholder={t("Search items...", "आइटम खोजें...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
           <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleExportToExcel} variant="outline" disabled={itemMovementData.length === 0}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> {t("Export Excel", "एक्सेल निर्यात करें")}
           </Button>
           <Button onClick={handleExportToPdf} variant="outline" disabled={itemMovementData.length === 0}>
-            <FileTextIcon className="mr-2 h-4 w-4" /> Export PDF
+            <FileTextIcon className="mr-2 h-4 w-4" /> {t("Export PDF", "पीडीएफ निर्यात करें")}
           </Button>
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={itemMovementData.length === 0}>
-            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+            <Share2 className="mr-2 h-4 w-4" /> {t("Share Summary", "सारांश साझा करें")}
           </Button>
           <Button onClick={handlePrint} variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
           </Button>
         </div>
       </CardHeader>
@@ -236,19 +240,19 @@ const ItemMovementReport: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Item ID</TableHead>
-                <TableHead>Item Name</TableHead>
-                <TableHead className="text-right">Total Sales (KG)</TableHead>
-                <TableHead className="text-right">Total Purchases (KG)</TableHead>
-                <TableHead className="text-right">Net Movement (KG)</TableHead>
-                <TableHead className="text-right">Current Stock (KG)</TableHead>
+                <TableHead>{t("Item ID", "आइटम आईडी")}</TableHead>
+                <TableHead>{t("Item Name", "आइटम का नाम")}</TableHead>
+                <TableHead className="text-right">{t("Total Sales (KG)", "कुल बिक्री (KG)")}</TableHead>
+                <TableHead className="text-right">{t("Total Purchases (KG)", "कुल खरीद (KG)")}</TableHead>
+                <TableHead className="text-right">{t("Net Movement (KG)", "शुद्ध आवाजाही (KG)")}</TableHead>
+                <TableHead className="text-right">{t("Current Stock (KG)", "वर्तमान स्टॉक (KG)")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {itemMovementData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    No item movement data found for the selected period.
+                    {t("No item movement data found for the selected period.", "चयनित अवधि के लिए कोई आइटम आवाजाही डेटा नहीं मिला।")}
                   </TableCell>
                 </TableRow>
               ) : (

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
 import { DateRangePicker } from "@/components/DateRangePicker"; // Import DateRangePicker
 import { DateRange } from "react-day-picker";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface Farmer {
   id: string;
@@ -35,6 +36,7 @@ interface FarmerBalance {
 }
 
 const FarmerDueBalanceReport: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
@@ -123,13 +125,15 @@ const FarmerDueBalanceReport: React.FC = () => {
     window.open(whatsappUrl, '_blank');
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">Farmer Due Balances</CardTitle>
+        <CardTitle className="text-2xl font-bold">{t("Farmer Due Balances", "किसान देय शेष")}</CardTitle>
         <div className="flex space-x-2 print-hide">
           <Input
-            placeholder="Search farmer..."
+            placeholder={t("Search farmer...", "किसान खोजें...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
@@ -137,10 +141,10 @@ const FarmerDueBalanceReport: React.FC = () => {
           {/* DateRangePicker is added here but not actively used for balance calculation in this specific report */}
           <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={filteredBalances.length === 0}>
-            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+            <Share2 className="mr-2 h-4 w-4" /> {t("Share Summary", "सारांश साझा करें")}
           </Button>
           <Button onClick={handlePrint} variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
           </Button>
         </div>
       </CardHeader>
@@ -149,17 +153,17 @@ const FarmerDueBalanceReport: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Farmer ID</TableHead>
-                <TableHead>Farmer Name</TableHead>
-                <TableHead>Village</TableHead>
-                <TableHead className="text-right">Due Balance</TableHead>
+                <TableHead>{t("Farmer ID", "किसान आईडी")}</TableHead>
+                <TableHead>{t("Farmer Name", "किसान का नाम")}</TableHead>
+                <TableHead>{t("Village", "गाँव")}</TableHead>
+                <TableHead className="text-right">{t("Due Balance", "देय शेष")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBalances.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    No farmers found or no balances to display.
+                    {t("No farmers found or no balances to display.", "कोई किसान नहीं मिला या कोई शेष राशि प्रदर्शित करने के लिए नहीं है।")}
                   </TableCell>
                 </TableRow>
               ) : (

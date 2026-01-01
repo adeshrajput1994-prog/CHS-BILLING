@@ -21,6 +21,7 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 interface ConsolidatedEntry {
   date: string;
@@ -34,6 +35,7 @@ interface ConsolidatedEntry {
 }
 
 const ConsolidatedTransactionReport: React.FC = () => {
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
@@ -182,30 +184,30 @@ const ConsolidatedTransactionReport: React.FC = () => {
       : "";
 
     tempDiv.innerHTML = `
-      <h1 style="text-align: center; margin-bottom: 20px;">Consolidated Transaction Report${dateRangeTitle}</h1>
+      <h1 style="text-align: center; margin-bottom: 20px;">${t("Consolidated Transaction Report", "समग्र लेनदेन रिपोर्ट")}${dateRangeTitle}</h1>
       <table style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr style="background-color: #f2f2f2;">
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Reference</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Farmer Name</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount (₹)</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Method</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Details</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Date", "दिनांक")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Time", "समय")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Type", "प्रकार")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Reference", "संदर्भ")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Farmer Name", "किसान का नाम")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">${t("Amount (₹)", "राशि (₹)")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Method", "विधि")}</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${t("Details", "विवरण")}</th>
           </tr>
         </thead>
         <tbody>
-          ${consolidatedData.map(entry => `
+          ${consolidatedData.map((entry, index) => `
             <tr>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.date}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.time}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${entry.type}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t(entry.type, entry.type === "Sale" ? "बिक्री" : entry.type === "Purchase" ? "खरीद" : entry.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.reference}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.farmerName}</td>
               <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${entry.amount.toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${entry.method || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t(entry.method || '-', entry.method === "Cash" ? "नकद" : entry.method === "Bank" ? "बैंक" : "-")}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.details}</td>
             </tr>
           `).join('')}
@@ -213,39 +215,41 @@ const ConsolidatedTransactionReport: React.FC = () => {
       </table>
     `;
 
-    exportToPdf(tempDivId, "Consolidated_Transaction_Report", `Consolidated Transaction Report${dateRangeTitle}`).finally(() => {
+    exportToPdf(tempDivId, "Consolidated_Transaction_Report", t("Consolidated Transaction Report", "समग्र लेनदेन रिपोर्ट") + dateRangeTitle).finally(() => {
       if (tempDiv && tempDiv.parentNode) {
         tempDiv.parentNode.removeChild(tempDiv);
       }
     });
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-2xl font-bold">Consolidated Transaction Report</CardTitle>
-          <CardDescription>View all sales, purchases, and cash/bank transactions in one place.</CardDescription>
+          <CardTitle className="text-2xl font-bold">{t("Consolidated Transaction Report", "समग्र लेनदेन रिपोर्ट")}</CardTitle>
+          <CardDescription>{t("View all sales, purchases, and cash/bank transactions in one place.", "सभी बिक्री, खरीद और नकद/बैंक लेनदेन एक ही स्थान पर देखें।")}</CardDescription>
         </div>
         <div className="flex space-x-2 print-hide">
           <Input
-            placeholder="Search transactions..."
+            placeholder={t("Search transactions...", "लेनदेन खोजें...")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
           <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleExportToExcel} variant="outline" disabled={consolidatedData.length === 0}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> {t("Export Excel", "एक्सेल निर्यात करें")}
           </Button>
           <Button onClick={handleExportToPdf} variant="outline" disabled={consolidatedData.length === 0}>
-            <FileTextIcon className="mr-2 h-4 w-4" /> Export PDF
+            <FileTextIcon className="mr-2 h-4 w-4" /> {t("Export PDF", "पीडीएफ निर्यात करें")}
           </Button>
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={consolidatedData.length === 0}>
-            <Share2 className="mr-2 h-4 w-4" /> Share Summary
+            <Share2 className="mr-2 h-4 w-4" /> {t("Share Summary", "सारांश साझा करें")}
           </Button>
           <Button onClick={handlePrint} variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("Print", "प्रिंट करें")}
           </Button>
         </div>
       </CardHeader>
@@ -254,21 +258,21 @@ const ConsolidatedTransactionReport: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead>Farmer Name</TableHead>
-                <TableHead className="text-right">Amount (₹)</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Details</TableHead>
+                <TableHead>{t("Date", "दिनांक")}</TableHead>
+                <TableHead>{t("Time", "समय")}</TableHead>
+                <TableHead>{t("Type", "प्रकार")}</TableHead>
+                <TableHead>{t("Reference", "संदर्भ")}</TableHead>
+                <TableHead>{t("Farmer Name", "किसान का नाम")}</TableHead>
+                <TableHead className="text-right">{t("Amount (₹)", "राशि (₹)")}</TableHead>
+                <TableHead>{t("Method", "विधि")}</TableHead>
+                <TableHead>{t("Details", "विवरण")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {consolidatedData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                    No transactions found for the selected period.
+                    {t("No transactions found for the selected period.", "चयनित अवधि के लिए कोई लेनदेन नहीं मिला।")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -276,11 +280,11 @@ const ConsolidatedTransactionReport: React.FC = () => {
                   <TableRow key={index}>
                     <TableCell>{entry.date}</TableCell>
                     <TableCell>{entry.time}</TableCell>
-                    <TableCell>{entry.type}</TableCell>
+                    <TableCell>{t(entry.type, entry.type === "Sale" ? "बिक्री" : entry.type === "Purchase" ? "खरीद" : entry.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</TableCell>
                     <TableCell>{entry.reference}</TableCell>
                     <TableCell>{entry.farmerName}</TableCell>
                     <TableCell className="text-right">{entry.amount.toFixed(2)}</TableCell>
-                    <TableCell>{entry.method || '-'}</TableCell>
+                    <TableCell>{t(entry.method || '-', entry.method === "Cash" ? "नकद" : entry.method === "Bank" ? "बैंक" : "-")}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{entry.details}</TableCell>
                   </TableRow>
                 ))

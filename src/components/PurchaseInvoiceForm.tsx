@@ -36,6 +36,7 @@ import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 import { Item as GlobalItem } from "./ItemForm"; // Import Item interface from ItemForm
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -120,6 +121,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   currentPurchaseTime,
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
+  const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
   const [allItems, setAllItems] = useState<GlobalItem[]>([]); // Use GlobalItem for stock management
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>(initialData?.items || []);
@@ -370,53 +372,55 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     setIsAddFarmerDialogOpen(false); // Close the dialog
   };
 
+  const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
   return (
     <div className="space-y-6 p-4">
       <div className="flex justify-between items-center print-hide">
-        <h1 className="text-3xl font-bold">{initialData ? "Edit Purchase Invoice" : "Create Purchase Invoice"}</h1>
+        <h1 className="text-3xl font-bold">{initialData ? t("Edit Purchase Invoice", "खरीद चालान संपादित करें") : t("Create Purchase Invoice", "खरीद चालान बनाएँ")}</h1>
         <div className="flex space-x-2">
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || purchaseItems.length === 0}>
             <Share2 className="mr-2 h-4 w-4" /> WhatsApp
           </Button>
           <Button onClick={handlePrint} variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print Invoice
+            <Printer className="mr-2 h-4 w-4" /> {t("Print Invoice", "चालान प्रिंट करें")}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={onCancel}>{t("Cancel", "रद्द करें")}</Button>
         </div>
       </div>
 
       <form onSubmit={purchaseForm.handleSubmit(onSubmitPurchaseInvoice, onErrorPurchaseForm)} className="space-y-6">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-4xl font-extrabold mb-2">{selectedCompany?.name || "COMPANY NAME"}</h2>
-          <p className="text-md text-muted-foreground">{selectedCompany?.address || "COMPANY ADDRESS"}</p>
+          <h2 className="text-4xl font-extrabold mb-2">{selectedCompany?.name || t("COMPANY NAME", "कंपनी का नाम")}</h2>
+          <p className="text-md text-muted-foreground">{selectedCompany?.address || t("COMPANY ADDRESS", "कंपनी का पता")}</p>
         </div>
 
         {/* Invoice Details & Farmer Selection */}
         <Card>
           <CardHeader className="print-hide">
-            <CardTitle>Invoice & Farmer Details</CardTitle>
-            <CardDescription>Select a farmer and view invoice information.</CardDescription>
+            <CardTitle>{t("Invoice & Farmer Details", "चालान और किसान विवरण")}</CardTitle>
+            <CardDescription>{t("Select a farmer and view invoice information.", "एक किसान चुनें और चालान की जानकारी देखें।")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="purchaseNo">PURCHASE NO</Label>
+                <Label htmlFor="purchaseNo">{t("PURCHASE NO", "खरीद संख्या")}</Label>
                 <Input id="purchaseNo" value={currentPurchaseNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="purchaseDate">DATE</Label>
+                <Label htmlFor="purchaseDate">{t("DATE", "दिनांक")}</Label>
                 <Input id="purchaseDate" value={currentPurchaseDate} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="purchaseTime">TIME</Label>
+                <Label htmlFor="purchaseTime">{t("TIME", "समय")}</Label>
                 <Input id="purchaseTime" value={currentPurchaseTime} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
               <div className="space-y-2 print-hide">
-                <Label htmlFor="selectedFarmerId">FARMER</Label>
+                <Label htmlFor="selectedFarmerId">{t("FARMER", "किसान")}</Label>
                 <div className="flex items-center space-x-2">
                   <Popover open={openFarmerSelect} onOpenChange={setOpenFarmerSelect}>
                     <PopoverTrigger asChild>
@@ -428,14 +432,14 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                       >
                         {selectedFarmer
                           ? selectedFarmer.farmerName
-                          : "Select farmer..."}
+                          : t("Select farmer...", "किसान चुनें...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput placeholder="Search farmer..." />
-                        <CommandEmpty>No farmer found.</CommandEmpty>
+                        <CommandInput placeholder={t("Search farmer...", "किसान खोजें...")} />
+                        <CommandEmpty>{t("No farmer found.", "कोई किसान नहीं मिला।")}</CommandEmpty>
                         <CommandGroup>
                           {allFarmers.map((farmer) => (
                             <CommandItem
@@ -463,14 +467,14 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="shrink-0">
                         <Plus className="h-4 w-4" />
-                        <span className="sr-only">Add New Farmer</span>
+                        <span className="sr-only">{t("Add New Farmer", "नया किसान जोड़ें")}</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[600px]">
                       <DialogHeader>
-                        <DialogTitle>Add New Farmer</DialogTitle>
+                        <DialogTitle>{t("Add New Farmer", "नया किसान जोड़ें")}</DialogTitle>
                         <DialogDescription>
-                          Fill in the details to add a new farmer.
+                          {t("Fill in the details to add a new farmer.", "नया किसान जोड़ने के लिए विवरण भरें।")}
                         </DialogDescription>
                       </DialogHeader>
                       <FarmersForm onSave={handleQuickAddFarmerSave} onCancel={handleQuickAddFarmerCancel} />
@@ -484,45 +488,45 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
               {selectedFarmer ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="farmerId">FARMER ID</Label>
+                    <Label htmlFor="farmerId">{t("FARMER ID", "किसान आईडी")}</Label>
                     <Input id="farmerId" value={selectedFarmer.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="farmerNameDisplay">FARMER</Label>
+                    <Label htmlFor="farmerNameDisplay">{t("FARMER", "किसान")}</Label>
                     <Input id="farmerNameDisplay" value={selectedFarmer.farmerName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="fathersName">FATHER</Label>
+                    <Label htmlFor="fathersName">{t("FATHER", "पिता")}</Label>
                     <Input id="fathersName" value={selectedFarmer.fathersName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="village">VILLAGE</Label>
+                    <Label htmlFor="village">{t("VILLAGE", "गाँव")}</Label>
                     <Input id="village" value={selectedFarmer.village} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="mobileNo">MOBILE NO</Label>
+                    <Label htmlFor="mobileNo">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
                     <Input id="mobileNo" value={selectedFarmer.mobileNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="accountName">ACCOUNT NAME</Label>
+                    <Label htmlFor="accountName">{t("ACCOUNT NAME", "खाता नाम")}</Label>
                     <Input id="accountName" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="accountNo">ACCOUNT NO</Label>
+                    <Label htmlFor="accountNo">{t("ACCOUNT NO", "खाता संख्या")}</Label>
                     <Input id="accountNo" value={selectedFarmer.accountNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="ifscCode">IFSC</Label>
+                    <Label htmlFor="ifscCode">{t("IFSC", "आईएफएससी")}</Label>
                     <Input id="ifscCode" value={selectedFarmer.ifscCode} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bank">BANK</Label>
+                    <Label htmlFor="bank">{t("BANK", "बैंक")}</Label>
                     <Input id="bank" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" /> {/* Assuming bank name is account name */}
                   </div>
                 </>
               ) : (
                 <div className="flex items-end">
-                  <Button variant="outline" className="w-full" disabled>Select a farmer to view details</Button>
+                  <Button variant="outline" className="w-full" disabled>{t("Select a farmer to view details", "विवरण देखने के लिए एक किसान चुनें")}</Button>
                 </div>
               )}
             </div>
@@ -532,14 +536,14 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         {/* Add Item Section */}
         <Card className="print-hide">
           <CardHeader>
-            <CardTitle>Add Items</CardTitle>
-            <CardDescription>Enter item details to add to the invoice.</CardDescription>
+            <CardTitle>{t("Add Items", "आइटम जोड़ें")}</CardTitle>
+            <CardDescription>{t("Enter item details to add to the invoice.", "चालान में जोड़ने के लिए आइटम विवरण दर्ज करें।")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={itemForm.handleSubmit(handleAddItem, onErrorItemForm)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="selectedItemId">ITEM</Label>
+                  <Label htmlFor="selectedItemId">{t("ITEM", "आइटम")}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -549,14 +553,14 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                       >
                         {selectedItemForAdd
                           ? allItems.find((item) => item.id === selectedItemForAdd)?.itemName
-                          : "Select item..."}
+                          : t("Select item...", "आइटम चुनें...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[200px] p-0">
                       <Command>
-                        <CommandInput placeholder="Search item..." />
-                        <CommandEmpty>No item found.</CommandEmpty>
+                        <CommandInput placeholder={t("Search item...", "आइटम खोजें...")} />
+                        <CommandEmpty>{t("No item found.", "कोई आइटम नहीं मिला।")}</CommandEmpty>
                         <CommandGroup>
                           {allItems.map((item) => (
                             <CommandItem
@@ -584,27 +588,27 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ratePerKgDisplay">RATE</Label>
+                  <Label htmlFor="ratePerKgDisplay">{t("RATE", "दर")}</Label>
                   <Input id="ratePerKgDisplay" value={currentItemRate.toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="grossWeight">GROSS WEIGHT (KG)</Label>
+                  <Label htmlFor="grossWeight">{t("GROSS WEIGHT (KG)", "सकल वजन (KG)")}</Label>
                   <Input id="grossWeight" type="number" step="0.01" placeholder="0.00" {...itemForm.register("grossWeight")} />
                   {itemForm.formState.errors.grossWeight && (
                     <p className="text-red-500 text-sm">{itemForm.formState.errors.grossWeight.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tareWeight">TARE WEIGHT (KG)</Label>
+                  <Label htmlFor="tareWeight">{t("TARE WEIGHT (KG)", "टारे वजन (KG)")}</Label>
                   <Input id="tareWeight" type="number" step="0.01" placeholder="0.00" {...itemForm.register("tareWeight")} />
                   {itemForm.formState.errors.tareWeight && (
                     <p className="text-red-500 text-sm">{itemForm.formState.errors.tareWeight.message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mudDeduction">MUD DEDUCTION (%)</Label>
+                  <Label htmlFor="mudDeduction">{t("MUD DEDUCTION (%)", "मिट्टी कटौती (%)")}</Label>
                   <Input id="mudDeduction" type="number" step="0.01" placeholder="0.00" {...itemForm.register("mudDeduction")} />
                   {itemForm.formState.errors.mudDeduction && (
                     <p className="text-red-500 text-sm">{itemForm.formState.errors.mudDeduction.message}</p>
@@ -612,7 +616,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                 </div>
               </div>
               <Button type="button" onClick={itemForm.handleSubmit(handleAddItem, onErrorItemForm)} className="w-full">
-                <Plus className="mr-2 h-4 w-4" /> Add Item
+                <Plus className="mr-2 h-4 w-4" /> {t("Add Item", "आइटम जोड़ें")}
               </Button>
             </form>
           </CardContent>
@@ -621,31 +625,31 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         {/* Items Table */}
         <Card>
           <CardHeader className="print-hide">
-            <CardTitle>Purchase Items</CardTitle>
-            <CardDescription>List of items in this purchase invoice.</CardDescription>
+            <CardTitle>{t("Purchase Items", "खरीद के आइटम")}</CardTitle>
+            <CardDescription>{t("List of items in this purchase invoice.", "इस खरीद चालान में आइटमों की सूची।")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">S.No</TableHead>
-                    <TableHead>ITEM</TableHead>
-                    <TableHead>GROSS WEIGHT</TableHead>
-                    <TableHead>TARE WEIGHT</TableHead>
-                    <TableHead>NET WEIGHT</TableHead>
-                    <TableHead>MUD DEDUCTION(%)</TableHead>
-                    <TableHead>FINAL WEIGHT</TableHead>
-                    <TableHead>RATE</TableHead>
-                    <TableHead className="text-right">AMOUNT</TableHead>
-                    <TableHead className="text-center print-hide">Actions</TableHead>
+                    <TableHead className="w-[50px]">{t("S.No", "क्र.सं.")}</TableHead>
+                    <TableHead>{t("ITEM", "आइटम")}</TableHead>
+                    <TableHead>{t("GROSS WEIGHT", "सकल वजन")}</TableHead>
+                    <TableHead>{t("TARE WEIGHT", "टारे वजन")}</TableHead>
+                    <TableHead>{t("NET WEIGHT", "शुद्ध वजन")}</TableHead>
+                    <TableHead>{t("MUD DEDUCTION(%)", "मिट्टी कटौती(%)")}</TableHead>
+                    <TableHead>{t("FINAL WEIGHT", "अंतिम वजन")}</TableHead>
+                    <TableHead>{t("RATE", "दर")}</TableHead>
+                    <TableHead className="text-right">{t("AMOUNT", "राशि")}</TableHead>
+                    <TableHead className="text-center print-hide">{t("Actions", "कार्यवाई")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {purchaseItems.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
-                        No items added yet.
+                        {t("No items added yet.", "अभी तक कोई आइटम नहीं जोड़ा गया है।")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -663,7 +667,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                         <TableCell className="text-center print-hide">
                           <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.uniqueId)}>
                             <Trash2 className="h-4 w-4 text-red-600" />
-                            <span className="sr-only">Delete</span>
+                            <span className="sr-only">{t("Delete", "हटाएँ")}</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -678,15 +682,15 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         {/* Invoice Summary & Actions */}
         <Card>
           <CardHeader className="print-hide">
-            <CardTitle>Invoice Summary</CardTitle>
+            <CardTitle>{t("Invoice Summary", "चालान सारांश")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
-              <p className="text-sm font-medium">Total Amount</p>
+              <p className="text-sm font-medium">{t("Total Amount", "कुल राशि")}</p>
               <p className="text-lg font-semibold">₹ {totalAmount.toFixed(2)}</p>
             </div>
             <div className="space-y-2 print-hide">
-              <Label htmlFor="advance">ADVANCE</Label>
+              <Label htmlFor="advance">{t("ADVANCE", "अग्रिम")}</Label>
               <Input
                 id="advance"
                 type="number"
@@ -699,23 +703,23 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
               )}
             </div>
             <div className="flex justify-between items-center border-t pt-4">
-              <p className="text-xl font-bold">DUE</p>
+              <p className="text-xl font-bold">{t("DUE", "देय")}</p>
               <p className={`text-2xl font-bold ${dueAmount >= 0 ? "text-red-600" : "text-green-600"}`}>
                 ₹ {dueAmount.toFixed(2)}
               </p>
             </div>
-            <Button type="submit" className="w-full print-hide">{initialData ? "Update Purchase Invoice" : "Create Purchase Invoice"}</Button>
+            <Button type="submit" className="w-full print-hide">{initialData ? t("Update Purchase Invoice", "खरीद चालान अपडेट करें") : t("Create Purchase Invoice", "खरीद चालान बनाएँ")}</Button>
           </CardContent>
         </Card>
 
         {/* Signatures */}
         <div className="flex justify-between mt-8 pt-8 border-t border-dashed">
           <div className="text-center">
-            <p className="font-semibold">FARMER SIGN</p>
+            <p className="font-semibold">{t("FARMER SIGN", "किसान के हस्ताक्षर")}</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>
           </div>
           <div className="text-center">
-            <p className="font-semibold">MANGER SIGN</p>
+            <p className="font-semibold">{t("MANGER SIGN", "प्रबंधक के हस्ताक्षर")}</p>
             <div className="w-48 h-16 border-b border-gray-400 mt-4"></div>
           </div>
         </div>

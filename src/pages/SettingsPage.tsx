@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Separator } from "@/components/ui/separator";
+import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 
 // Define Zod schema for company details editing
 const companyEditSchema = z.object({
@@ -33,6 +34,7 @@ type CompanyEditFormValues = z.infer<typeof companyEditSchema>;
 const SettingsPage: React.FC = () => {
   const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear } = useCompany();
   const { theme, setTheme } = useTheme(); // Use theme hook
+  const { printInHindi, setPrintInHindi } = usePrintSettings(); // Use print settings hook
 
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
@@ -268,10 +270,14 @@ const SettingsPage: React.FC = () => {
           </div>
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="printInHindi">Print Invoices in Hindi</Label>
-            <Switch id="printInHindi" disabled />
+            <Switch
+              id="printInHindi"
+              checked={printInHindi}
+              onCheckedChange={setPrintInHindi}
+            />
           </div>
           <p className="text-sm text-muted-foreground">
-            *Note: Printing dynamic data in Hindi (or other regional languages) requires a robust backend with translation capabilities and specific font handling, which is beyond the scope of this client-side application. This is a placeholder for future functionality.
+            *Note: Enabling this will translate *static labels* in invoices to Hindi for printing. Dynamic data (like farmer names, item names, remarks) will remain in English as automatic translation is beyond the scope of this client-side application.
           </p>
         </CardContent>
       </Card>
