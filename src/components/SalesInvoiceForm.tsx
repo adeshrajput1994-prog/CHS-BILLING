@@ -11,27 +11,10 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger, } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, } from "@/components/ui/dialog";
 import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
@@ -82,7 +65,8 @@ const salesInvoiceSchema = z.object({
 type SalesInvoiceFormValues = z.infer<typeof salesInvoiceSchema>;
 
 // Define a type for the complete Sales Invoice
-export interface CompleteSalesInvoice { // Exported for use in parent components
+export interface CompleteSalesInvoice {
+  // Exported for use in parent components
   id: string;
   invoiceNo: string;
   invoiceDate: string;
@@ -113,16 +97,17 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  
+
   // Fetch data using useFirestore
   const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers');
   const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items');
 
   const [salesItems, setSalesItems] = useState<SalesItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
-    initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
+    initialData?.items
+      ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1
+      : 1
   );
-
   const [openFarmerSelect, setOpenFarmerSelect] = useState(false);
   const [isAddFarmerDialogOpen, setIsAddFarmerDialogOpen] = useState(false);
 
@@ -136,13 +121,15 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
 
   const salesForm = useForm<SalesInvoiceFormValues>({
     resolver: zodResolver(salesInvoiceSchema),
-    defaultValues: initialData ? {
-      selectedFarmerId: initialData.farmer.id,
-      advance: initialData.advance,
-    } : {
-      selectedFarmerId: undefined,
-      advance: 0,
-    },
+    defaultValues: initialData
+      ? {
+        selectedFarmerId: initialData.farmer.id,
+        advance: initialData.advance,
+      }
+      : {
+        selectedFarmerId: undefined,
+        advance: 0,
+      },
   });
 
   const selectedFarmerId = salesForm.watch("selectedFarmerId");
@@ -173,7 +160,10 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       });
       setNextUniqueItemId(1);
     }
-    itemForm.reset({ selectedItemId: undefined, weight: 0 });
+    itemForm.reset({
+      selectedItemId: undefined,
+      weight: 0,
+    });
   }, [initialData, salesForm, itemForm]);
 
   const handleAddItem = (data: SalesInvoiceItemFormValues) => {
@@ -192,7 +182,6 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       }
 
       const amount = data.weight * itemDetails.ratePerKg;
-
       const newItem: SalesItem = {
         uniqueId: `sales-item-${nextUniqueItemId}`,
         itemName: itemDetails.itemName,
@@ -200,13 +189,17 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         amount: amount,
         ...data,
       };
+
       setSalesItems((prevItems) => {
         const updatedItems = [...prevItems, newItem];
         console.log("SalesForm: Updated sales items:", updatedItems);
         return updatedItems;
       });
       setNextUniqueItemId((prevId) => prevId + 1);
-      itemForm.reset({ selectedItemId: undefined, weight: 0 }); // Reset item form
+      itemForm.reset({
+        selectedItemId: undefined,
+        weight: 0,
+      }); // Reset item form
       showSuccess("Item added to invoice!");
     } catch (error) {
       console.error("SalesForm: Error in handleAddItem:", error);
@@ -249,6 +242,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         console.error("SalesForm: No farmer selected.");
         return;
       }
+
       if (salesItems.length === 0) {
         showError("Please add at least one item to the invoice.");
         console.error("SalesForm: No items added to invoice.");
@@ -314,20 +308,21 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       return;
     }
 
-    const message = `*Sales Invoice Details*\n\n` +
-                    `*Invoice No:* ${currentInvoiceNo}\n` +
-                    `*Date:* ${currentInvoiceDate}\n` +
-                    `*Time:* ${currentInvoiceTime}\n` +
-                    `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
-                    `*Village:* ${selectedFarmer.village}\n\n` +
-                    `*Items:*\n` +
-                    salesItems.map((item, index) =>
-                      `${index + 1}. ${item.itemName} - ${item.weight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
-                    ).join('\n') +
-                    `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
-                    `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
-                    `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
-                    `Thank you for your business!`;
+    const message =
+      `*Sales Invoice Details*\n\n` +
+      `*Invoice No:* ${currentInvoiceNo}\n` +
+      `*Date:* ${currentInvoiceDate}\n` +
+      `*Time:* ${currentInvoiceTime}\n` +
+      `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
+      `*Village:* ${selectedFarmer.village}\n\n` +
+      `*Items:*\n` +
+      salesItems.map((item, index) =>
+        `${index + 1}. ${item.itemName} - ${item.weight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+      ).join('\n') +
+      `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
+      `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
+      `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
+      `Thank you for your business!`;
 
     const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -337,6 +332,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     const newId = getNextFarmerId(allFarmers); // Still use local ID generator for consistency
     const farmerWithId = { ...newFarmerData, id: newId };
     const addedDocId = await addFarmerDocument(farmerWithId); // Add to Firestore
+
     if (addedDocId) {
       salesForm.setValue("selectedFarmerId", newId, { shouldValidate: true }); // Select the newly added farmer
       setIsAddFarmerDialogOpen(false); // Close the dialog
@@ -398,9 +394,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                       aria-expanded={openFarmerSelect}
                       className="w-full justify-between"
                     >
-                      {selectedFarmer
-                        ? selectedFarmer.farmerName
-                        : t("Select farmer...", "किसान चुनें...")}
+                      {selectedFarmer ? selectedFarmer.farmerName : t("Select farmer...", "किसान चुनें...")}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -431,6 +425,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                     </Command>
                   </PopoverContent>
                 </Popover>
+
                 <Dialog open={isAddFarmerDialogOpen} onOpenChange={setIsAddFarmerDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0">
@@ -450,9 +445,17 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 </Dialog>
               </div>
               {/* Display selected farmer name for print */}
-              <Input id="farmerNameDisplayPrint" value={selectedFarmer?.farmerName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input
+                id="farmerNameDisplayPrint"
+                value={selectedFarmer?.farmerName || ""}
+                readOnly
+                disabled
+                className="bg-gray-100 dark:bg-gray-800 print-only"
+              />
               {salesForm.formState.errors.selectedFarmerId && (
-                <p className="text-red-500 text-sm col-span-2 text-right print-hide">{salesForm.formState.errors.selectedFarmerId.message}</p>
+                <p className="text-red-500 text-sm col-span-2 text-right print-hide">
+                  {salesForm.formState.errors.selectedFarmerId.message}
+                </p>
               )}
 
               <Label htmlFor="village" className="text-right">{t("VILLAGE", "गाँव")}</Label>
@@ -626,27 +629,19 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
               <Input value={`₹ ${totalAmount.toFixed(2)}`} readOnly disabled className="bg-gray-100 dark:bg-gray-800 text-lg font-semibold" />
 
               <Label htmlFor="advance" className="text-right font-medium print-hide">{t("ADVANCE", "अग्रिम")}</Label>
-              <Input
-                id="advance"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...salesForm.register("advance")}
-                className="print-hide"
-              />
+              <Input id="advance" type="number" step="0.01" placeholder="0.00" {...salesForm.register("advance")} className="print-hide" />
               {salesForm.formState.errors.advance && (
-                <p className="text-red-500 text-sm col-span-2 text-right print-hide">{salesForm.formState.errors.advance.message}</p>
+                <p className="text-red-500 text-sm col-span-2 text-right print-hide">
+                  {salesForm.formState.errors.advance.message}
+                </p>
               )}
 
               <Label className="text-right font-bold">{t("DUE", "देय")}</Label>
-              <Input
-                value={`₹ ${dueAmount.toFixed(2)}`}
-                readOnly
-                disabled
-                className={`bg-gray-100 dark:bg-gray-800 text-2xl font-bold ${dueAmount >= 0 ? "text-red-600" : "text-green-600"}`}
-              />
+              <Input value={`₹ ${dueAmount.toFixed(2)}`} readOnly disabled className={`bg-gray-100 dark:bg-gray-800 text-2xl font-bold ${dueAmount >= 0 ? "text-red-600" : "text-green-600"}`} />
             </div>
-            <Button type="submit" className="w-full mt-6 print-hide">{initialData ? t("Update Sales Invoice", "बिक्री चालान अपडेट करें") : t("Create Sales Invoice", "बिक्री चालान बनाएँ")}</Button>
+            <Button type="submit" className="w-full mt-6 print-hide">
+              {initialData ? t("Update Sales Invoice", "बिक्री चालान अपडेट करें") : t("Create Sales Invoice", "बिक्री चालान बनाएँ")}
+            </Button>
           </CardContent>
         </Card>
 
