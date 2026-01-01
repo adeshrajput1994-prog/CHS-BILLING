@@ -10,18 +10,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm"; // Import the interface
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 // Define the Zod schema for manufacturing expenses
 const manufacturingExpensesSchema = z.object({
   manufacturedItemName: z.string().min(1, { message: "Manufactured Item Name is required." }),
-  totalPurchaseItemKg: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0, { message: "Total Purchase Item (KG) cannot be negative." })
-  ),
-  manufacturedItemKg: z.preprocess(
-    (val) => Number(val),
-    z.number().min(0, { message: "Manufactured Item (KG) cannot be negative." })
-  ),
   plantLabourRate: z.preprocess(
     (val) => Number(val),
     z.number().min(0, { message: "Plant Labour Rate cannot be negative." })
@@ -42,13 +35,37 @@ const manufacturingExpensesSchema = z.object({
 
 type ManufacturingExpensesFormValues = z.infer<typeof manufacturingExpensesSchema>;
 
+// Define the interface for a Manufacturing Expense document in Firestore
+interface ManufacturingExpense {
+  id?: string; // Firestore ID
+  manufacturedItemName: string;
+  totalPurchaseItemKg: number;
+  manufacturedItemKg: number;
+  plantLabourRate: number;
+  khakhoraLabourRate: number;
+  loadingLabourRate: number;
+  freightRate: number;
+  // Calculated fields
+  manufacturedItemStock: number;
+  plantLabourCost: number;
+  khakhoraLabourCost: number;
+  loadingLabourCost: number;
+  freightCost: number;
+  totalManufacturingExpense: number;
+  createdAt?: any; // serverTimestamp
+  updatedAt?: any; // serverTimestamp
+}
+
 const ManufacturingExpensesForm: React.FC = () => {
+  // Fetch purchase invoices using useFirestore
+  const { data: purchaseInvoices, loading: loadingPurchaseInvoices, error: purchaseInvoicesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  // Use useFirestore to add manufacturing expenses
+  const { addDocument: addManufacturingExpense, loading: savingExpense, error: saveError } = useFirestore<ManufacturingExpense>('manufacturingExpenses');
+
   const form = useForm<ManufacturingExpensesFormValues>({
     resolver: zodResolver(manufacturingExpensesSchema),
     defaultValues: {
       manufacturedItemName: "",
-      totalPurchaseItemKg: 0,
-      manufacturedItemKg: 0,
       plantLabourRate: 0,
       khakhoraLabourRate: 0,
       loadingLabourRate: 0,
@@ -59,35 +76,30 @@ const ManufacturingExpensesForm: React.FC = () => {
   const { watch, handleSubmit, setValue, formState: { errors } } = form;
 
   const manufacturedItemName = watch("manufacturedItemName");
-  const totalPurchaseItemKg = watch("totalPurchaseItemKg");
-  const manufacturedItemKg = watch("manufacturedItemKg");
   const plantLabourRate = watch("plantLabourRate");
   const khakhoraLabourRate = watch("khakhoraLabourRate");
   const loadingLabourRate = watch("loadingLabourRate");
   const freightRate = watch("freightRate");
 
+  const [totalPurchaseItemKg, setTotalPurchaseItemKg] = useState(0);
+  const [manufacturedItemKg, setManufacturedItemKg] = useState(0);
+
   // Effect to load purchase invoices and calculate initial values
   useEffect(() => {
-    const storedInvoices = localStorage.getItem("purchaseInvoices");
-    let totalFinalWeight = 0;
-    if (storedInvoices) {
-      try {
-        const purchaseInvoices: CompletePurchaseInvoice[] = JSON.parse(storedInvoices);
-        totalFinalWeight = purchaseInvoices.reduce((sum, invoice) => {
-          return sum + invoice.items.reduce((itemSum, item) => itemSum + item.finalWeight, 0);
-        }, 0);
-      } catch (error) {
-        console.error("Failed to parse purchase invoices from localStorage:", error);
-        showError("Failed to load purchase data for calculations.");
-      }
+    if (purchaseInvoices.length > 0) {
+      const totalFinalWeight = purchaseInvoices.reduce((sum, invoice) => {
+        return sum + invoice.items.reduce((itemSum, item) => itemSum + item.finalWeight, 0);
+      }, 0);
+      setTotalPurchaseItemKg(totalFinalWeight);
+      setManufacturedItemKg(totalFinalWeight / 4); // Assuming 1/4th conversion
+    } else {
+      setTotalPurchaseItemKg(0);
+      setManufacturedItemKg(0);
     }
-
-    setValue("totalPurchaseItemKg", totalFinalWeight);
-    setValue("manufacturedItemKg", totalFinalWeight / 4);
-  }, [setValue]); // Depend on setValue to ensure it's stable
+  }, [purchaseInvoices]); // Depend on purchaseInvoices from Firestore
 
   // Calculations based on the image
-  const manufacturedItemStock = totalPurchaseItemKg / 4; // This will now be the same as manufacturedItemKg
+  const manufacturedItemStock = manufacturedItemKg; // This is the output of the manufacturing process
   const plantLabourCost = totalPurchaseItemKg * plantLabourRate;
   const khakhoraLabourCost = totalPurchaseItemKg * khakhoraLabourRate;
   const loadingLabourCost = manufacturedItemKg * loadingLabourRate;
@@ -95,23 +107,47 @@ const ManufacturingExpensesForm: React.FC = () => {
 
   const totalManufacturingExpense = plantLabourCost + khakhoraLabourCost + loadingLabourCost + freightCost;
 
-  const onSubmit = (data: ManufacturingExpensesFormValues) => {
-    console.log("Manufacturing Expenses Data:", {
-      ...data,
-      manufacturedItemStock,
-      plantLabourCost,
-      khakhoraLabourCost,
-      loadingLabourCost,
-      freightCost,
-      totalManufacturingExpense,
-    });
-    showSuccess("Manufacturing expenses calculated and logged!");
+  const onSubmit = async (data: ManufacturingExpensesFormValues) => {
+    const expenseToSave: Omit<ManufacturingExpense, 'id'> = {
+      manufacturedItemName: data.manufacturedItemName,
+      totalPurchaseItemKg: totalPurchaseItemKg,
+      manufacturedItemKg: manufacturedItemKg,
+      plantLabourRate: data.plantLabourRate,
+      khakhoraLabourRate: data.khakhoraLabourRate,
+      loadingLabourRate: data.loadingLabourRate,
+      freightRate: data.freightRate,
+      manufacturedItemStock: manufacturedItemStock,
+      plantLabourCost: plantLabourCost,
+      khakhoraLabourCost: khakhoraLabourCost,
+      loadingLabourCost: loadingLabourCost,
+      freightCost: freightCost,
+      totalManufacturingExpense: totalManufacturingExpense,
+    };
+
+    const addedId = await addManufacturingExpense(expenseToSave);
+    if (addedId) {
+      showSuccess("Manufacturing expenses calculated and saved!");
+      // Optionally reset form or show a success message
+      form.reset(); // Reset form fields after successful save
+      setTotalPurchaseItemKg(0); // Reset calculated fields
+      setManufacturedItemKg(0);
+    } else {
+      showError("Failed to save manufacturing expenses.");
+    }
   };
 
   const onError = (errors: any) => {
     console.error("Form validation errors:", errors);
     showError("Please correct the errors in the form.");
   };
+
+  if (loadingPurchaseInvoices) {
+    return <div className="text-center py-8 text-lg">Loading purchase data for calculations...</div>;
+  }
+
+  if (purchaseInvoicesError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading purchase data: {purchaseInvoicesError}</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">
@@ -134,17 +170,11 @@ const ManufacturingExpensesForm: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="totalPurchaseItemKg">Total Purchase Item (KG)</Label>
-                <Input id="totalPurchaseItemKg" type="number" step="0.01" placeholder="0.00" {...form.register("totalPurchaseItemKg")} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
-                {errors.totalPurchaseItemKg && (
-                  <p className="text-red-500 text-sm">{errors.totalPurchaseItemKg.message}</p>
-                )}
+                <Input id="totalPurchaseItemKg" type="number" step="0.01" value={totalPurchaseItemKg.toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manufacturedItemKg">Manufactured Item (KG)</Label>
-                <Input id="manufacturedItemKg" type="number" step="0.01" placeholder="0.00" {...form.register("manufacturedItemKg")} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
-                {errors.manufacturedItemKg && (
-                  <p className="text-red-500 text-sm">{errors.manufacturedItemKg.message}</p>
-                )}
+                <Input id="manufacturedItemKg" type="number" step="0.01" value={manufacturedItemKg.toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
               </div>
             </div>
 
@@ -211,7 +241,10 @@ const ManufacturingExpensesForm: React.FC = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full">Calculate Expenses</Button>
+            <Button type="submit" className="w-full" disabled={savingExpense}>
+              {savingExpense ? "Saving..." : "Calculate & Save Expenses"}
+            </Button>
+            {saveError && <p className="text-red-500 text-sm mt-2">Error saving: {saveError}</p>}
           </form>
         </CardContent>
       </Card>
