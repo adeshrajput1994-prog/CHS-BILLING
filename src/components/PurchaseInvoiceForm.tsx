@@ -37,6 +37,7 @@ import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 import { Item as GlobalItem } from "./ItemForm"; // Import Item interface from ItemForm
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -122,8 +123,11 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
-  const [allItems, setAllItems] = useState<GlobalItem[]>([]); // Use GlobalItem for stock management
+  
+  // Fetch data using useFirestore
+  const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers');
+  const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items');
+
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
     initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
@@ -163,22 +167,6 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     const item = allItems.find(i => i.id === selectedItemForAdd);
     return item ? item.ratePerKg : 0;
   }, [selectedItemForAdd, allItems]);
-
-  // Load farmers and items from localStorage on initial mount
-  useEffect(() => {
-    console.log("PurchaseForm: Loading data from localStorage...");
-    const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) {
-      setAllFarmers(JSON.parse(storedFarmers));
-      console.log("PurchaseForm: Loaded farmers:", JSON.parse(storedFarmers));
-    }
-    const storedItems = localStorage.getItem("items");
-    if (storedItems) {
-      const parsedItems: GlobalItem[] = JSON.parse(storedItems);
-      setAllItems(parsedItems.map(item => ({ ...item, stock: Number(item.stock || 0) }))); // Ensure stock is number
-      console.log("PurchaseForm: Loaded items:", parsedItems);
-    }
-  }, []);
 
   // Reset item form when initialData changes (e.g., switching from add to edit)
   useEffect(() => {
@@ -251,23 +239,21 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   const advanceAmount = purchaseForm.watch("advance");
   const dueAmount = totalAmount - advanceAmount;
 
-  const updateItemStock = (itemsToUpdate: PurchaseItem[], type: 'add' | 'deduct') => {
-    const currentStoredItems: GlobalItem[] = JSON.parse(localStorage.getItem("items") || "[]");
-    const updatedStoredItems = currentStoredItems.map(storedItem => {
-      const itemInInvoice = itemsToUpdate.find(invItem => invItem.selectedItemId === storedItem.id);
-      if (itemInInvoice) {
+  const updateItemStock = async (itemsToUpdate: PurchaseItem[], type: 'add' | 'deduct') => {
+    for (const itemInInvoice of itemsToUpdate) {
+      const storedItem = allItems.find(i => i.id === itemInInvoice.selectedItemId);
+      if (storedItem) {
         const newStock = type === 'add'
-          ? storedItem.stock + itemInInvoice.finalWeight
-          : storedItem.stock - itemInInvoice.finalWeight;
-        return { ...storedItem, stock: newStock };
+          ? Number(storedItem.stock) + Number(itemInInvoice.finalWeight)
+          : Number(storedItem.stock) - Number(itemInInvoice.finalWeight);
+        await updateItemDocument(storedItem.id, { stock: newStock });
+      } else {
+        console.warn(`Item with ID ${itemInInvoice.selectedItemId} not found for stock update.`);
       }
-      return storedItem;
-    });
-    localStorage.setItem("items", JSON.stringify(updatedStoredItems));
-    setAllItems(updatedStoredItems); // Update local state as well
+    }
   };
 
-  const onSubmitPurchaseInvoice = (data: PurchaseInvoiceFormValues) => {
+  const onSubmitPurchaseInvoice = async (data: PurchaseInvoiceFormValues) => {
     try {
       console.log("PurchaseForm: Attempting to submit purchase invoice with data:", data);
       if (!selectedFarmer) {
@@ -297,11 +283,11 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
       if (initialData) {
         // If editing, first deduct stock for old items, then add for new items
         const oldItems = initialData.items;
-        updateItemStock(oldItems, 'deduct'); // Deduct old items' stock
-        updateItemStock(purchaseItems, 'add'); // Add new items' stock
+        await updateItemStock(oldItems, 'deduct'); // Deduct old items' stock
+        await updateItemStock(purchaseItems, 'add'); // Add new items' stock
       } else {
         // If adding new invoice, just add stock
-        updateItemStock(purchaseItems, 'add');
+        await updateItemStock(purchaseItems, 'add');
       }
 
       onSave(completeInvoice);
@@ -359,13 +345,15 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     window.open(whatsappUrl, '_blank');
   };
 
-  const handleQuickAddFarmerSave = (newFarmerData: Omit<Farmer, 'id'>) => {
-    const newId = getNextFarmerId(allFarmers);
-    const newFarmer: Farmer = { id: newId, ...newFarmerData };
-    setAllFarmers((prevFarmers) => [...prevFarmers, newFarmer]);
-    purchaseForm.setValue("selectedFarmerId", newId, { shouldValidate: true }); // Select the newly added farmer
-    setIsAddFarmerDialogOpen(false); // Close the dialog
-    showSuccess(`Farmer ${newFarmer.farmerName} added and selected!`);
+  const handleQuickAddFarmerSave = async (newFarmerData: Omit<Farmer, 'id'>) => {
+    const newId = getNextFarmerId(allFarmers); // Still use local ID generator for consistency
+    const farmerWithId = { ...newFarmerData, id: newId };
+    const addedDocId = await addFarmerDocument(farmerWithId); // Add to Firestore
+    if (addedDocId) {
+      purchaseForm.setValue("selectedFarmerId", newId, { shouldValidate: true }); // Select the newly added farmer
+      setIsAddFarmerDialogOpen(false); // Close the dialog
+      showSuccess(`Farmer ${newFarmerData.farmerName} added and selected!`);
+    }
   };
 
   const handleQuickAddFarmerCancel = () => {
@@ -373,6 +361,10 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (loadingFarmers || loadingItems) {
+    return <div className="text-center py-8 text-lg">Loading farmers and items...</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">

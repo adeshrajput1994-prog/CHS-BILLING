@@ -6,9 +6,10 @@ import { Plus, Printer } from "lucide-react";
 import PurchaseInvoiceForm, { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import PurchaseInvoiceTable from "@/components/PurchaseInvoiceTable";
 import { Input } from "@/components/ui/input";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast"; // Import showError
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 // Helper function to get the next purchase number (e.g., P-YYYYMMDD-001)
 const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
@@ -31,7 +32,25 @@ const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
 
 const PurchaseInvoicesPage: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [invoices, setInvoices] = useState<CompletePurchaseInvoice[]>([]);
+  
+  // Replace localStorage state with useFirestore hook for purchase invoices
+  const { 
+    data: invoices, 
+    loading: loadingInvoices, 
+    error: invoicesError, 
+    addDocument: addInvoiceDocument, 
+    updateDocument: updateInvoiceDocument, 
+    deleteDocument: deleteInvoiceDocument 
+  } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+
+  // Fetch items data for stock management
+  const { 
+    data: items, 
+    loading: loadingItems, 
+    error: itemsError, 
+    updateDocument: updateItemDocument 
+  } = useFirestore<GlobalItem>('items');
+
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit' | 'view'>('list');
   const [editingInvoice, setEditingInvoice] = useState<CompletePurchaseInvoice | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -41,26 +60,7 @@ const PurchaseInvoicesPage: React.FC = () => {
   const [currentPurchaseDate, setCurrentPurchaseDate] = useState("");
   const [currentPurchaseTime, setCurrentPurchaseTime] = useState("");
 
-  // Load invoices from localStorage on initial mount
-  useEffect(() => {
-    const storedInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedInvoices) {
-      const parsedInvoices: CompletePurchaseInvoice[] = JSON.parse(storedInvoices);
-      // Explicitly convert numeric fields to numbers
-      const processedInvoices = parsedInvoices.map(invoice => ({
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        advance: Number(invoice.advance),
-        due: Number(invoice.due),
-      }));
-      setInvoices(processedInvoices);
-    }
-  }, []);
-
-  // Save invoices to localStorage whenever the invoices state changes
-  useEffect(() => {
-    localStorage.setItem("purchaseInvoices", JSON.stringify(invoices));
-  }, [invoices]);
+  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
 
   const generateNewInvoiceDetails = () => {
     const newPurchaseNo = getNextPurchaseNumber(invoices);
@@ -70,41 +70,43 @@ const PurchaseInvoicesPage: React.FC = () => {
     setCurrentPurchaseTime(today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
   };
 
-  const handleAddInvoice = (newInvoiceData: CompletePurchaseInvoice) => {
-    setInvoices((prevInvoices) => [...prevInvoices, newInvoiceData]);
-    showSuccess("Purchase Invoice added successfully!");
-    setViewMode('list');
+  const handleAddInvoice = async (newInvoiceData: CompletePurchaseInvoice) => {
+    const addedId = await addInvoiceDocument(newInvoiceData);
+    if (addedId) {
+      showSuccess("Purchase Invoice added successfully!");
+      setViewMode('list');
+    }
   };
 
-  const handleEditInvoice = (updatedInvoiceData: CompletePurchaseInvoice) => {
-    setInvoices((prevInvoices) =>
-      prevInvoices.map((invoice) =>
-        invoice.id === updatedInvoiceData.id ? updatedInvoiceData : invoice
-      )
-    );
-    showSuccess("Purchase Invoice updated successfully!");
-    setEditingInvoice(null);
-    setViewMode('list');
+  const handleEditInvoice = async (updatedInvoiceData: CompletePurchaseInvoice) => {
+    if (updatedInvoiceData.id) {
+      await updateInvoiceDocument(updatedInvoiceData.id, updatedInvoiceData);
+      showSuccess("Purchase Invoice updated successfully!");
+      setEditingInvoice(null);
+      setViewMode('list');
+    } else {
+      showError("Invoice ID is missing for update.");
+    }
   };
 
-  const handleDeleteInvoice = (id: string) => {
-    setInvoices((prevInvoices) => {
-      const invoiceToDelete = prevInvoices.find(inv => inv.id === id);
-      if (invoiceToDelete) {
-        // Revert stock for items in the deleted invoice
-        const currentStoredItems: GlobalItem[] = JSON.parse(localStorage.getItem("items") || "[]");
-        const updatedStoredItems = currentStoredItems.map(storedItem => {
-          const itemInDeletedInvoice = invoiceToDelete.items.find(invItem => invItem.selectedItemId === storedItem.id);
-          if (itemInDeletedInvoice) {
-            return { ...storedItem, stock: storedItem.stock - itemInDeletedInvoice.finalWeight };
-          }
-          return storedItem;
-        });
-        localStorage.setItem("items", JSON.stringify(updatedStoredItems));
+  const handleDeleteInvoice = async (id: string) => {
+    const invoiceToDelete = invoices.find(inv => inv.id === id);
+    if (invoiceToDelete) {
+      // Revert stock for items in the deleted invoice
+      for (const itemInDeletedInvoice of invoiceToDelete.items) {
+        const storedItem = items.find(i => i.id === itemInDeletedInvoice.selectedItemId);
+        if (storedItem) {
+          const newStock = Number(storedItem.stock) - Number(itemInDeletedInvoice.finalWeight); // Deduct from stock
+          await updateItemDocument(storedItem.id, { stock: newStock });
+        } else {
+          console.warn(`Item with ID ${itemInDeletedInvoice.selectedItemId} not found for stock reversion.`);
+        }
       }
+      await deleteInvoiceDocument(id);
       showSuccess("Purchase Invoice deleted successfully!");
-      return prevInvoices.filter((invoice) => invoice.id !== id);
-    });
+    } else {
+      showError("Invoice not found for deletion.");
+    }
   };
 
   const handleOpenAddForm = () => {
@@ -148,6 +150,18 @@ const PurchaseInvoicesPage: React.FC = () => {
   );
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (loadingInvoices || loadingItems) {
+    return <div className="text-center py-8 text-lg">Loading purchase invoices and item data...</div>;
+  }
+
+  if (invoicesError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading invoices: {invoicesError}</div>;
+  }
+
+  if (itemsError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading items: {itemsError}</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">
