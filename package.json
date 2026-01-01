@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:start": "npx cap open @capacitor-community/electron",
-    "electron:build": "pnpm run build && npx cap copy electron && cd electron && npx electron-builder build -c ./electron-builder.config.json --publish never"
+    "electron:build": "pnpm run build && npx cap copy electron && cp package.json electron/package.json && cd electron && npx electron-builder build -c ./electron-builder.config.json --publish never"
   },
   "dependencies": {
     "@capacitor/android": "7.4.4",
