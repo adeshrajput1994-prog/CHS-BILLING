@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Printer } from "lucide-react"; // Import Printer icon
+import { Plus, Printer } from "lucide-react";
 import FarmersForm from "@/components/FarmersForm";
 import FarmerTable from "@/components/FarmerTable";
 import { Input } from "@/components/ui/input";
-import { getNextFarmerId } from "@/utils/idGenerators"; // Import from new utility
+import { getNextFarmerId } from "@/utils/idGenerators";
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { showError } from "@/utils/toast"; // Import showError for validation
 
 interface Farmer {
   id: string;
@@ -21,43 +23,40 @@ interface Farmer {
 }
 
 const FarmersPage = () => {
-  const [farmers, setFarmers] = useState<Farmer[]>([]);
+  // Replace localStorage state with useFirestore hook
+  const { data: farmers, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Farmer>('farmers');
+  
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Load farmers from localStorage on initial mount
-  useEffect(() => {
-    const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) {
-      setFarmers(JSON.parse(storedFarmers));
+  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
+
+  const handleAddFarmer = async (newFarmerData: Omit<Farmer, 'id'>) => {
+    // Firestore will generate the actual document ID, but we can still use getNextFarmerId
+    // for a client-side generated 'id' property if needed for display or specific logic.
+    // For now, we'll let Firestore handle the primary ID.
+    const addedId = await addDocument(newFarmerData);
+    if (addedId) {
+      // useFirestore will refetch data, so no manual state update needed here
+      setViewMode('list'); // Go back to list view after adding
     }
-  }, []);
-
-  // Save farmers to localStorage whenever the farmers state changes
-  useEffect(() => {
-    localStorage.setItem("farmers", JSON.stringify(farmers));
-  }, [farmers]);
-
-  const handleAddFarmer = (newFarmerData: Omit<Farmer, 'id'>) => {
-    const newId = getNextFarmerId(farmers);
-    const newFarmer: Farmer = { id: newId, ...newFarmerData };
-    setFarmers((prevFarmers) => [...prevFarmers, newFarmer]);
-    setViewMode('list'); // Go back to list view after adding
   };
 
-  const handleEditFarmer = (updatedFarmerData: Farmer) => {
-    setFarmers((prevFarmers) =>
-      prevFarmers.map((farmer) =>
-        farmer.id === updatedFarmerData.id ? updatedFarmerData : farmer
-      )
-    );
-    setEditingFarmer(null); // Clear editing state
-    setViewMode('list'); // Go back to list view after editing
+  const handleEditFarmer = async (updatedFarmerData: Farmer) => {
+    if (updatedFarmerData.id) {
+      await updateDocument(updatedFarmerData.id, updatedFarmerData);
+      // useFirestore will refetch data
+      setEditingFarmer(null); // Clear editing state
+      setViewMode('list'); // Go back to list view after editing
+    } else {
+      showError("Farmer ID is missing for update.");
+    }
   };
 
-  const handleDeleteFarmer = (id: string) => {
-    setFarmers((prevFarmers) => prevFarmers.filter((farmer) => farmer.id !== id));
+  const handleDeleteFarmer = async (id: string) => {
+    await deleteDocument(id);
+    // useFirestore will refetch data
   };
 
   const handleCancelForm = () => {
@@ -84,6 +83,14 @@ const FarmersPage = () => {
     farmer.mobileNo.includes(searchTerm) ||
     farmer.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return <div className="text-center py-8 text-lg">Loading farmers...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-lg text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">
