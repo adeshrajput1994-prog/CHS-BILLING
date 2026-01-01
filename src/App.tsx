@@ -19,40 +19,65 @@ import CompanySettingsPage from "./pages/CompanySettingsPage"; // Import the new
 import NotFound from "./pages/NotFound";
 import { CompanyProvider } from "./context/CompanyContext"; // Import CompanyProvider
 import { ThemeProvider } from "./components/ThemeProvider"; // Import ThemeProvider
+import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore"; // Import the migration utility
+import React, { useState } from "react"; // Import React and useState
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme"> {/* Add ThemeProvider */}
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <CompanyProvider> {/* Wrap Layout with CompanyProvider */}
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/farmers" element={<FarmersPage />} />
-                <Route path="/items" element={<ItemsPage />} />
-                <Route path="/purchase" element={<PurchaseInvoicesPage />} /> {/* Update route path */}
-                <Route path="/sale" element={<SalesInvoicesPage />} /> {/* Update route path */}
-                <Route path="/manufacturing-expenses" element={<ManufacturingExpensesPage />} />
-                <Route path="/cash-bank" element={<CashBankPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/sync-backup" element={<SyncBackupPage />} />
-                <Route path="/utilities" element={<UtilitiesPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/company-settings" element={<CompanySettingsPage />} /> {/* New route */}
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Layout>
-          </CompanyProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [migrationAttempted, setMigrationAttempted] = useState(false);
+
+  const handleMigrateData = async () => {
+    if (!migrationAttempted) {
+      await migrateLocalStorageToFirestore();
+      setMigrationAttempted(true);
+      // Optionally, you might want to refresh the page after migration to ensure all components re-fetch data from Firestore
+      // setTimeout(() => window.location.reload(), 2000);
+    }
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <CompanyProvider>
+              <Layout>
+                {/* Migration Button - Render only if migration hasn't been attempted */}
+                {!migrationAttempted && (
+                  <div className="fixed bottom-4 right-4 z-50">
+                    <button
+                      onClick={handleMigrateData}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full shadow-lg"
+                    >
+                      Migrate Local Data to Cloud
+                    </button>
+                  </div>
+                )}
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/farmers" element={<FarmersPage />} />
+                  <Route path="/items" element={<ItemsPage />} />
+                  <Route path="/purchase" element={<PurchaseInvoicesPage />} />
+                  <Route path="/sale" element={<SalesInvoicesPage />} />
+                  <Route path="/manufacturing-expenses" element={<ManufacturingExpensesPage />} />
+                  <Route path="/cash-bank" element={<CashBankPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/sync-backup" element={<SyncBackupPage />} />
+                  <Route path="/utilities" element={<UtilitiesPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/company-settings" element={<CompanySettingsPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            </CompanyProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
