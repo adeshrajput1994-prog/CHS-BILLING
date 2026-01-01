@@ -7,56 +7,44 @@ import ItemForm, { Item } from "@/components/ItemForm"; // Import Item interface
 import ItemTable from "@/components/ItemTable"; // Import the new ItemTable
 import { Input } from "@/components/ui/input";
 import { getNextItemId } from "@/utils/idGenerators"; // Import from new utility
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 const ItemsPage = () => {
-  const [items, setItems] = useState<Item[]>([]);
+  // Replace localStorage state with useFirestore hook
+  const { data: items, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Item>('items');
+  
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Load items from localStorage on initial mount
-  useEffect(() => {
-    const storedItems = localStorage.getItem("items");
-    if (storedItems) {
-      const parsedItems: Item[] = JSON.parse(storedItems);
-      // Ensure stock is a number, default to 0 if missing
-      const processedItems = parsedItems.map(item => ({
-        ...item,
-        ratePerKg: Number(item.ratePerKg),
-        stock: Number(item.stock || 0), // Ensure stock is a number, default to 0
-      }));
-      setItems(processedItems);
+  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
+
+  const handleAddItem = async (newItemData: Omit<Item, 'id'>) => {
+    // Firestore will generate the actual document ID.
+    // We can still use getNextItemId for a client-side generated 'id' property if needed for display or specific logic,
+    // but for Firestore, the document ID is primary.
+    const addedId = await addDocument({ ...newItemData, stock: Number(newItemData.stock || 0) });
+    if (addedId) {
+      // useFirestore will refetch data, so no manual state update needed here
+      setViewMode('list'); // Go back to list view after adding
     }
-  }, []);
-
-  // Save items to localStorage whenever the items state changes
-  useEffect(() => {
-    localStorage.setItem("items", JSON.stringify(items));
-  }, [items]);
-
-  const handleAddItem = (newItemData: Omit<Item, 'id'>) => {
-    const newId = getNextItemId(items);
-    const newItem: Item = { id: newId, ...newItemData, stock: Number(newItemData.stock || 0) }; // Ensure stock is number
-    setItems((prevItems) => [...prevItems, newItem]);
-    showSuccess("Item added successfully!");
-    setViewMode('list'); // Go back to list view after adding
   };
 
-  const handleEditItem = (updatedItemData: Item) => {
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === updatedItemData.id ? { ...updatedItemData, stock: Number(updatedItemData.stock || 0) } : item // Ensure stock is number
-      )
-    );
-    showSuccess("Item updated successfully!");
-    setEditingItem(null); // Clear editing state
-    setViewMode('list'); // Go back to list view after editing
+  const handleEditItem = async (updatedItemData: Item) => {
+    if (updatedItemData.id) {
+      await updateDocument(updatedItemData.id, { ...updatedItemData, stock: Number(updatedItemData.stock || 0) });
+      // useFirestore will refetch data
+      setEditingItem(null); // Clear editing state
+      setViewMode('list'); // Go back to list view after editing
+    } else {
+      showError("Item ID is missing for update.");
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-    showSuccess("Item deleted successfully!");
+  const handleDeleteItem = async (id: string) => {
+    await deleteDocument(id);
+    // useFirestore will refetch data
   };
 
   const handleCancelForm = () => {
@@ -80,6 +68,14 @@ const ItemsPage = () => {
     item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return <div className="text-center py-8 text-lg">Loading items...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-lg text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">
