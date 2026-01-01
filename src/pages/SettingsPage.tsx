@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/context/CompanyContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import { Plus, Sun, Moon, Monitor } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useTheme } from "next-themes"; // Import useTheme
@@ -26,24 +26,16 @@ const companyEditSchema = z.object({
 type CompanyEditFormValues = z.infer<typeof companyEditSchema>;
 
 const SettingsPage: React.FC = () => {
-  const { 
-    companies, 
-    selectedCompany, 
-    selectedFinancialYear, 
-    addCompany, 
-    selectCompany, 
-    selectFinancialYear,
-    loading, // Get loading state from context
+  const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear, loading, // Get loading state from context
     error // Get error state from context
   } = useCompany();
-  
   const { theme, setTheme } = useTheme(); // Use theme hook
   const { printInHindi, setPrintInHindi } = usePrintSettings(); // Use print settings hook
-  
+
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
   const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
-  
+
   // Form for editing selected company details
   const companyEditForm = useForm<CompanyEditFormValues>({
     resolver: zodResolver(companyEditSchema),
@@ -79,7 +71,6 @@ const SettingsPage: React.FC = () => {
       showError("No company selected to update.");
       return;
     }
-    
     // Note: This implementation assumes we're updating the company in Firestore
     // The actual update logic would depend on how the useFirestore hook is implemented
     // For now, we'll just show a success message
@@ -174,7 +165,7 @@ const SettingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           {selectedCompany && (
             <div className="space-y-2">
               <Label htmlFor="selectFinancialYear">Select Financial Year</Label>
@@ -192,7 +183,7 @@ const SettingsPage: React.FC = () => {
               </Select>
             </div>
           )}
-          
+
           {selectedCompany && (
             <div className="mt-4 p-4 border rounded-md bg-muted">
               <p className="text-sm font-medium">Current Company: <span className="font-bold">{selectedCompany.name}</span></p>
@@ -200,9 +191,9 @@ const SettingsPage: React.FC = () => {
               <p className="text-sm font-medium">Active Financial Year: <span className="font-bold">{selectedFinancialYear || "N/A"}</span></p>
             </div>
           )}
-          
+
           <Separator className="my-4" />
-          
+
           <CardTitle className="text-xl">Add New Company</CardTitle>
           <CardDescription>Create a new company profile with its initial financial year.</CardDescription>
           <div className="space-y-4">
