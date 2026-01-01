@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:start": "npx cap open @capacitor-community/electron",
-    "electron:build": "pnpm run build && npx cap sync @capacitor-community/electron && electron-builder build --win --publish never"
+    "electron:build": "pnpm run build && npx cap copy electron && cd electron && npx electron-builder build -c ./electron-builder.config.json -p always"
   },
   "dependencies": {
     "@capacitor/android": "7.4.4",
@@ -93,6 +93,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/your-repo-name.git"
+    "url": "https://github.com/dyad-sh/dyad-app-template.git"
   }
 }
