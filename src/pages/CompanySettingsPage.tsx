@@ -1,23 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/context/CompanyContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 const CompanySettingsPage: React.FC = () => {
-  const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear } = useCompany();
+  const { 
+    companies, 
+    selectedCompany, 
+    selectedFinancialYear, 
+    addCompany, 
+    selectCompany, 
+    selectFinancialYear,
+    loading, // Get loading state from context
+    error // Get error state from context
+  } = useCompany();
+  
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
   const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
@@ -32,6 +36,32 @@ const CompanySettingsPage: React.FC = () => {
     setNewCompanyAddress("");
     setNewCompanyStartYear(new Date().getFullYear());
   };
+
+  // Show loading indicator while data is being fetched
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-lg">Loading company data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error message if there was an error fetching data
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
+          <p className="text-lg mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4">
@@ -48,30 +78,15 @@ const CompanySettingsPage: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="newCompanyName">Company Name</Label>
-            <Input
-              id="newCompanyName"
-              placeholder="e.g., My Business Inc."
-              value={newCompanyName}
-              onChange={(e) => setNewCompanyName(e.target.value)}
-            />
+            <Input id="newCompanyName" placeholder="e.g., My Business Inc." value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="newCompanyAddress">Company Address</Label>
-            <Input
-              id="newCompanyAddress"
-              placeholder="e.g., 123 Business St, City, State"
-              value={newCompanyAddress}
-              onChange={(e) => setNewCompanyAddress(e.target.value)}
-            />
+            <Input id="newCompanyAddress" placeholder="e.g., 123 Business St, City, State" value={newCompanyAddress} onChange={(e) => setNewCompanyAddress(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="newCompanyStartYear">Financial Year Start (e.g., 2023 for 2023-2024)</Label>
-            <Input
-              id="newCompanyStartYear"
-              type="number"
-              value={newCompanyStartYear}
-              onChange={(e) => setNewCompanyStartYear(Number(e.target.value))}
-            />
+            <Input id="newCompanyStartYear" type="number" value={newCompanyStartYear} onChange={(e) => setNewCompanyStartYear(Number(e.target.value))} />
           </div>
           <Button onClick={handleAddCompany} className="w-full">
             <Plus className="mr-2 h-4 w-4" /> Add Company
@@ -100,7 +115,6 @@ const CompanySettingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-
           {selectedCompany && (
             <div className="space-y-2">
               <Label htmlFor="selectFinancialYear">Select Financial Year</Label>
@@ -118,7 +132,6 @@ const CompanySettingsPage: React.FC = () => {
               </Select>
             </div>
           )}
-
           {selectedCompany && (
             <div className="mt-4 p-4 border rounded-md bg-muted">
               <p className="text-sm font-medium">Current Company: <span className="font-bold">{selectedCompany.name}</span></p>
