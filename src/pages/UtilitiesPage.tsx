@@ -65,21 +65,44 @@ const UtilitiesPage: React.FC = () => {
 
     const importedData = await importFromJson(selectedBackupFile);
     if (importedData) {
-      // Clear existing data before importing
-      localStorageKeys.forEach(key => localStorage.removeItem(key));
+      for (const key of localStorageKeys) {
+        const importedValue = importedData[key];
+        if (importedValue !== undefined) {
+          const existingDataString = localStorage.getItem(key);
+          let existingData;
+          try {
+            existingData = existingDataString ? JSON.parse(existingDataString) : null;
+          } catch (e) {
+            existingData = existingDataString; // If not JSON, keep as string
+          }
 
-      // Import new data
-      for (const key in importedData) {
-        if (localStorageKeys.includes(key)) { // Only import recognized keys
-          const value = importedData[key];
-          if (typeof value === 'object' && value !== null) {
-            localStorage.setItem(key, JSON.stringify(value));
+          let mergedData;
+          if (Array.isArray(importedValue) && Array.isArray(existingData)) {
+            // For arrays like farmers, items, transactions, invoices: concatenate unique entries
+            const existingIds = new Set(existingData.map((item: any) => item.id));
+            const newUniqueItems = importedValue.filter((item: any) => !existingIds.has(item.id));
+            mergedData = [...existingData, ...newUniqueItems];
+          } else if (typeof importedValue === 'object' && importedValue !== null && !Array.isArray(importedValue) &&
+                     typeof existingData === 'object' && existingData !== null && !Array.isArray(existingData)) {
+            // For objects like 'companies' (if it were a single object, not an array of companies): deep merge
+            // For 'companies' (which is an array of objects), we handle it like an array above.
+            // For simple key-value pairs like selectedCompanyId, selectedFinancialYear: overwrite
+            mergedData = importedValue; // Overwrite for simple objects/values
           } else {
-            localStorage.setItem(key, value as string);
+            // For other types or if existing data is not an array/object, simply overwrite
+            mergedData = importedValue;
+          }
+
+          if (mergedData !== null && mergedData !== undefined) {
+            if (typeof mergedData === 'object' && mergedData !== null) {
+              localStorage.setItem(key, JSON.stringify(mergedData));
+            } else {
+              localStorage.setItem(key, String(mergedData));
+            }
           }
         }
       }
-      showSuccess("All app data imported and restored successfully! Please refresh the page.");
+      showSuccess("All app data imported and merged successfully! Please refresh the page.");
       setSelectedBackupFile(null);
       // Suggest a full page refresh to re-initialize all components with new data
       setTimeout(() => window.location.reload(), 1500);
@@ -129,7 +152,7 @@ const UtilitiesPage: React.FC = () => {
             </div>
             {selectedBackupFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedBackupFile.name}</p>}
             <p className="text-sm text-red-500 mt-2">
-              <AlertTriangle className="inline h-4 w-4 mr-1" /> Importing data will overwrite your current application data. Proceed with caution!
+              <AlertTriangle className="inline h-4 w-4 mr-1" /> Importing data will merge with your current application data. Existing entries with the same ID will be kept, and new unique entries will be added.
             </p>
           </div>
         </CardContent>
