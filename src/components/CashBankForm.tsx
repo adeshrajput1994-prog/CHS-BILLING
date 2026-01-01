@@ -23,6 +23,7 @@ import { CompleteSalesInvoice } from "./SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm";
 import { Share2 } from "lucide-react"; // Import Share2 icon
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 interface Farmer {
   id: string;
@@ -56,10 +57,13 @@ interface CashBankFormProps {
 
 const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCancel }) => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
-  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
-  const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
+  
+  // Fetch data using useFirestore
+  const { data: allFarmers, loading: loadingFarmers } = useFirestore<Farmer>('farmers');
+  const { data: salesInvoices, loading: loadingSales } = useFirestore<CompleteSalesInvoice>('salesInvoices');
+  const { data: purchaseInvoices, loading: loadingPurchases } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { data: cashBankTransactions, loading: loadingCashBank } = useFirestore<CashBankTransaction>('cashBankTransactions');
+
   const [farmerDueBalances, setFarmerDueBalances] = useState<Map<string, number>>(new Map());
 
   const form = useForm<TransactionFormValues>({
@@ -75,21 +79,6 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
 
   const { watch, handleSubmit, setValue, reset, formState: { errors } } = form;
   const selectedFarmerId = watch("farmerId");
-
-  // Load all necessary data from localStorage
-  useEffect(() => {
-    const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) setAllFarmers(JSON.parse(storedFarmers));
-
-    const storedSalesInvoices = localStorage.getItem("salesInvoices");
-    if (storedSalesInvoices) setSalesInvoices(JSON.parse(storedSalesInvoices));
-
-    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedPurchaseInvoices) setPurchaseInvoices(JSON.parse(storedPurchaseInvoices));
-
-    const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
-    if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
-  }, []);
 
   // Reset form fields when initialData changes (e.g., switching from add to edit, or clearing edit)
   useEffect(() => {
@@ -187,6 +176,10 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (loadingFarmers || loadingSales || loadingPurchases || loadingCashBank) {
+    return <div className="text-center py-8 text-lg">Loading dependent data...</div>;
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">

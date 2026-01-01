@@ -8,46 +8,39 @@ import CashBankTable from "@/components/CashBankTable";
 import { CashBankTransaction } from "@/utils/balanceCalculations"; // Import the interface
 import { showSuccess } from "@/utils/toast";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 const CashBankPage: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [transactions, setTransactions] = useState<CashBankTransaction[]>([]);
+  // Replace localStorage state with useFirestore hook
+  const { data: transactions, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<CashBankTransaction>('cashBankTransactions');
+
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list'); // Added 'edit' mode
   const [editingTransaction, setEditingTransaction] = useState<CashBankTransaction | null>(null); // State for transaction being edited
 
-  // Load transactions from localStorage on initial mount
-  useEffect(() => {
-    const storedTransactions = localStorage.getItem("cashBankTransactions");
-    if (storedTransactions) {
-      setTransactions(JSON.parse(storedTransactions));
-    }
-  }, []);
+  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
 
-  // Save transactions to localStorage whenever the transactions state changes
-  useEffect(() => {
-    localStorage.setItem("cashBankTransactions", JSON.stringify(transactions));
-  }, [transactions]);
-
-  const handleSaveTransaction = (transactionToSave: CashBankTransaction) => {
+  const handleSaveTransaction = async (transactionToSave: CashBankTransaction) => {
     if (editingTransaction) {
       // Update existing transaction
-      setTransactions((prevTransactions) =>
-        prevTransactions.map((t) =>
-          t.id === transactionToSave.id ? transactionToSave : t
-        )
-      );
-      showSuccess("Transaction updated successfully!");
+      if (transactionToSave.id) {
+        await updateDocument(transactionToSave.id, transactionToSave);
+        showSuccess("Transaction updated successfully!");
+      } else {
+        // This case should ideally not happen if initialData is always provided for edits
+        showError("Transaction ID is missing for update.");
+      }
     } else {
       // Add new transaction
-      setTransactions((prevTransactions) => [...prevTransactions, transactionToSave]);
+      await addDocument(transactionToSave);
       showSuccess("Transaction recorded successfully!");
     }
     setEditingTransaction(null); // Clear editing state
     setViewMode('list'); // Go back to list view
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    setTransactions((prevTransactions) => prevTransactions.filter((t) => t.id !== id));
+  const handleDeleteTransaction = async (id: string) => {
+    await deleteDocument(id);
     showSuccess("Transaction deleted successfully!");
   };
 
@@ -68,6 +61,14 @@ const CashBankPage: React.FC = () => {
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (loading) {
+    return <div className="text-center py-8 text-lg">Loading transactions...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-lg text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6 p-4">
