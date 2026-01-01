@@ -23,6 +23,9 @@ import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction } from "@/utils/balanceCalculations";
 import { showError } from "@/utils/toast";
+import { DateRangePicker } from "@/components/DateRangePicker"; // Import DateRangePicker
+import { DateRange } from "react-day-picker";
+import { isWithinInterval, parseISO, format } from "date-fns";
 
 interface Farmer {
   id: string;
@@ -52,6 +55,7 @@ const FarmerStatementReport: React.FC = () => {
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
   const [statement, setStatement] = useState<StatementEntry[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // New state for date range
 
   useEffect(() => {
     const storedFarmers = localStorage.getItem("farmers");
@@ -102,47 +106,58 @@ const FarmerStatementReport: React.FC = () => {
       return;
     }
 
-    const farmerSales = salesInvoices.filter(inv => inv.farmer.id === selectedFarmerId);
-    const farmerPurchases = purchaseInvoices.filter(inv => inv.farmer.id === selectedFarmerId);
-    const farmerCashBank = cashBankTransactions.filter(txn => txn.farmerId === selectedFarmerId);
-
     let entries: StatementEntry[] = [];
 
-    farmerSales.forEach(invoice => {
-      entries.push({
-        date: invoice.invoiceDate,
-        time: invoice.invoiceTime,
-        type: "Sale",
-        description: `Sale Invoice ${invoice.invoiceNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
-        debit: invoice.totalAmount - invoice.advance,
-        credit: 0,
-        balance: 0, // Will be calculated later
-      });
-    });
+    const filterByDateRange = (itemDate: string) => {
+      if (!dateRange?.from) return true; // No start date, include all
+      const itemDateTime = parseISO(itemDate);
+      const start = dateRange.from;
+      const end = dateRange.to || new Date(); // If no end date, use today
 
-    farmerPurchases.forEach(invoice => {
-      entries.push({
-        date: invoice.purchaseDate,
-        time: invoice.purchaseTime,
-        type: "Purchase",
-        description: `Purchase Invoice ${invoice.purchaseNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
-        debit: 0,
-        credit: invoice.totalAmount - invoice.advance,
-        balance: 0, // Will be calculated later
-      });
-    });
+      return isWithinInterval(itemDateTime, { start, end });
+    };
 
-    farmerCashBank.forEach(txn => {
-      entries.push({
-        date: txn.date,
-        time: txn.time,
-        type: txn.type,
-        description: `${txn.type} (${txn.paymentMethod}) ${txn.remarks ? `- ${txn.remarks}` : ''}`,
-        debit: txn.type === "Payment Out" ? txn.amount : 0,
-        credit: txn.type === "Payment In" ? txn.amount : 0,
-        balance: 0, // Will be calculated later
+    salesInvoices
+      .filter(inv => inv.farmer.id === selectedFarmerId && filterByDateRange(inv.invoiceDate))
+      .forEach(invoice => {
+        entries.push({
+          date: invoice.invoiceDate,
+          time: invoice.invoiceTime,
+          type: "Sale",
+          description: `Sale Invoice ${invoice.invoiceNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
+          debit: invoice.totalAmount - invoice.advance,
+          credit: 0,
+          balance: 0, // Will be calculated later
+        });
       });
-    });
+
+    purchaseInvoices
+      .filter(inv => inv.farmer.id === selectedFarmerId && filterByDateRange(inv.purchaseDate))
+      .forEach(invoice => {
+        entries.push({
+          date: invoice.purchaseDate,
+          time: invoice.purchaseTime,
+          type: "Purchase",
+          description: `Purchase Invoice ${invoice.purchaseNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
+          debit: 0,
+          credit: invoice.totalAmount - invoice.advance,
+          balance: 0, // Will be calculated later
+        });
+      });
+
+    cashBankTransactions
+      .filter(txn => txn.farmerId === selectedFarmerId && filterByDateRange(txn.date))
+      .forEach(txn => {
+        entries.push({
+          date: txn.date,
+          time: txn.time,
+          type: txn.type,
+          description: `${txn.type} (${txn.paymentMethod}) ${txn.remarks ? `- ${txn.remarks}` : ''}`,
+          debit: txn.type === "Payment Out" ? txn.amount : 0,
+          credit: txn.type === "Payment In" ? txn.amount : 0,
+          balance: 0, // Will be calculated later
+        });
+      });
 
     // Sort entries chronologically
     entries.sort((a, b) => {
@@ -160,7 +175,7 @@ const FarmerStatementReport: React.FC = () => {
     });
 
     setStatement(statementWithBalances);
-  }, [selectedFarmerId, salesInvoices, purchaseInvoices, cashBankTransactions]);
+  }, [selectedFarmerId, salesInvoices, purchaseInvoices, cashBankTransactions, dateRange]);
 
   const handlePrint = () => {
     document.body.classList.add('print-mode');
@@ -177,7 +192,13 @@ const FarmerStatementReport: React.FC = () => {
     }
 
     const balanceType = netBalance >= 0 ? "Owed by Farmer" : "Owed to Farmer";
-    const message = `*Farmer Statement Summary for ${selectedFarmer.farmerName}*\n\n` +
+    const dateRangeText = dateRange?.from
+      ? dateRange.to
+        ? ` for period ${format(dateRange.from, "PPP")} to ${format(dateRange.to, "PPP")}`
+        : ` from ${format(dateRange.from, "PPP")}`
+      : "";
+
+    const message = `*Farmer Statement Summary for ${selectedFarmer.farmerName}${dateRangeText}*\n\n` +
                     `*Net Balance:* ₹${netBalance.toFixed(2)} (${balanceType})\n\n` +
                     `This summary reflects transactions up to ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}.\n` +
                     `For full details, please refer to the complete statement in the Vyapar app.`;
@@ -206,6 +227,7 @@ const FarmerStatementReport: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
+          <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={!selectedFarmer || statement.length === 0}>
             <Share2 className="mr-2 h-4 w-4" /> Share Summary
           </Button>
@@ -247,7 +269,7 @@ const FarmerStatementReport: React.FC = () => {
                   {statement.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                        No transactions found for this farmer.
+                        No transactions found for this farmer in the selected date range.
                       </TableCell>
                     </TableRow>
                   ) : (

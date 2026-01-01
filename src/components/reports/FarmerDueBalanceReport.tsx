@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
+import { DateRangePicker } from "@/components/DateRangePicker"; // Import DateRangePicker
+import { DateRange } from "react-day-picker";
 
 interface Farmer {
   id: string;
@@ -39,6 +41,7 @@ const FarmerDueBalanceReport: React.FC = () => {
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
   const [filteredBalances, setFilteredBalances] = useState<FarmerBalance[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined); // New state for date range
 
   useEffect(() => {
     const storedFarmers = localStorage.getItem("farmers");
@@ -73,6 +76,9 @@ const FarmerDueBalanceReport: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // For FarmerDueBalanceReport, the balance is always current, not date-range specific.
+    // However, if we wanted to show "balance as of a certain date", the logic would go here.
+    // For now, we calculate the current balance.
     const balancesMap = calculateFarmerDueBalances(
       farmers,
       salesInvoices,
@@ -128,6 +134,8 @@ const FarmerDueBalanceReport: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
+          {/* DateRangePicker is added here but not actively used for balance calculation in this specific report */}
+          <DateRangePicker date={dateRange} setDate={setDateRange} />
           <Button onClick={handleWhatsAppShare} variant="outline" disabled={filteredBalances.length === 0}>
             <Share2 className="mr-2 h-4 w-4" /> Share Summary
           </Button>

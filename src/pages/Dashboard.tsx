@@ -7,7 +7,9 @@ import { Link } from "react-router-dom";
 import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balanceCalculations";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
-import { Banknote, ArrowUpCircle, ArrowDownCircle } from "lucide-react"; // Added missing imports
+import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDays } from "lucide-react"; // Added missing imports and new icons
+import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator"; // Import Separator
 
 interface Farmer {
   id: string;
@@ -21,11 +23,22 @@ interface Farmer {
   ifscCode: string;
 }
 
+interface ManufacturingExpense {
+  manufacturedItemName: string;
+  totalPurchaseItemKg: number;
+  manufacturedItemKg: number;
+  plantLabourRate: number;
+  khakhoraLabourRate: number;
+  loadingLabourRate: number;
+  freightRate: number;
+}
+
 const Dashboard = () => {
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
+  const [manufacturingExpenses, setManufacturingExpenses] = useState<ManufacturingExpense[]>([]);
 
   useEffect(() => {
     const storedFarmers = localStorage.getItem("farmers");
@@ -57,18 +70,55 @@ const Dashboard = () => {
 
     const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
     if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
+
+    const storedManufacturingExpenses = localStorage.getItem("manufacturingExpenses");
+    if (storedManufacturingExpenses) setManufacturingExpenses(JSON.parse(storedManufacturingExpenses));
   }, []);
 
-  const { totalPaymentsIn, totalPaymentsOut, overallNetBusinessBalance } = useMemo(() => {
+  const {
+    totalPaymentsIn,
+    totalPaymentsOut,
+    overallNetBusinessBalance,
+    totalPurchasedItemsKg,
+    totalManufacturedItemsKg,
+    dailySalesAmount,
+    dailyPurchaseAmount,
+    dailyCashIn,
+    dailyCashOut,
+    majorPayments
+  } = useMemo(() => {
     let totalIn = 0;
     let totalOut = 0;
+    let totalPurchasedKg = 0;
+    let totalManufacturedKg = 0;
+    let dailySales = 0;
+    let dailyPurchases = 0;
+    let dailyIn = 0;
+    let dailyOut = 0;
+
+    const todayDate = format(new Date(), "yyyy-MM-dd");
 
     cashBankTransactions.forEach(txn => {
       if (txn.type === "Payment In") {
         totalIn += txn.amount;
+        if (txn.date === todayDate) dailyIn += txn.amount;
       } else {
         totalOut += txn.amount;
+        if (txn.date === todayDate) dailyOut += txn.amount;
       }
+    });
+
+    purchaseInvoices.forEach(invoice => {
+      totalPurchasedKg += invoice.items.reduce((sum, item) => sum + item.finalWeight, 0);
+      if (invoice.purchaseDate === todayDate) dailyPurchases += invoice.totalAmount;
+    });
+
+    salesInvoices.forEach(invoice => {
+      if (invoice.invoiceDate === todayDate) dailySales += invoice.totalAmount;
+    });
+
+    manufacturingExpenses.forEach(expense => {
+      totalManufacturedKg += expense.manufacturedItemKg;
     });
 
     const farmerBalancesMap = calculateFarmerDueBalances(
@@ -78,18 +128,30 @@ const Dashboard = () => {
       cashBankTransactions
     );
 
-    // Sum all individual farmer balances to get the overall net position of the business with its farmers
     let netBalance = 0;
     farmerBalancesMap.forEach(balance => {
       netBalance += balance;
     });
 
+    // Get top 5 major payments (Payment In or Payment Out)
+    const majorPaymentsList = [...cashBankTransactions]
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+
     return {
       totalPaymentsIn: totalIn,
       totalPaymentsOut: totalOut,
       overallNetBusinessBalance: netBalance,
+      totalPurchasedItemsKg: totalPurchasedKg,
+      totalManufacturedItemsKg: totalManufacturedKg,
+      dailySalesAmount: dailySales,
+      dailyPurchaseAmount: dailyPurchases,
+      dailyCashIn: dailyIn,
+      dailyCashOut: dailyOut,
+      majorPayments: majorPaymentsList,
     };
-  }, [farmers, salesInvoices, purchaseInvoices, cashBankTransactions]);
+  }, [farmers, salesInvoices, purchaseInvoices, cashBankTransactions, manufacturingExpenses]);
 
   return (
     <div className="space-y-6">
@@ -141,8 +203,94 @@ const Dashboard = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* New Cards for Total Purchased and Manufactured Items */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Purchased Items</CardTitle>
+            <Package className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {totalPurchasedItemsKg.toFixed(2)} KG
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total raw materials purchased
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Manufactured Items</CardTitle>
+            <Factory className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {totalManufacturedItemsKg.toFixed(2)} KG
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total items produced
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
+      <Separator className="my-6" />
+
+      {/* Daily Summary Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl font-semibold">Daily Summary ({format(new Date(), "PPP")})</CardTitle>
+          <CalendarDays className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Daily Sales Amount:</p>
+            <p className="text-lg font-bold text-green-600">₹ {dailySalesAmount.toFixed(2)}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Daily Purchase Amount:</p>
+            <p className="text-lg font-bold text-red-600">₹ {dailyPurchaseAmount.toFixed(2)}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Daily Cash In:</p>
+            <p className="text-lg font-bold text-green-600">₹ {dailyCashIn.toFixed(2)}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Daily Cash Out:</p>
+            <p className="text-lg font-bold text-red-600">₹ {dailyCashOut.toFixed(2)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Major Payments Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">Major Payments (Top 5)</CardTitle>
+          <CardDescription>Recent large cash or bank transactions.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {majorPayments.length === 0 ? (
+            <p className="text-muted-foreground">No major payments recorded yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {majorPayments.map((txn) => (
+                <div key={txn.id} className="flex justify-between items-center border-b pb-2 last:border-b-0 last:pb-0">
+                  <div>
+                    <p className="font-medium">{txn.farmerName}</p>
+                    <p className="text-sm text-muted-foreground">{txn.type} ({txn.paymentMethod}) - {txn.date}</p>
+                  </div>
+                  <p className={`font-bold ${txn.type === "Payment In" ? "text-green-600" : "text-red-600"}`}>
+                    ₹ {txn.amount.toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Original Invoice Details & Calculation Cards (kept for context, but can be removed/modified if desired) */}
       <Card>
         <CardHeader>
           <CardTitle>Invoice Details</CardTitle>
