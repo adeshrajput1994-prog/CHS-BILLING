@@ -1,0 +1,19 @@
+{
+  "appId": "com.example.brightalpacaplay",
+  "productName": "BrightAlpacaPlay",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "app/**/*",
+    "main.js",
+    "package.json"
+  ],
+  "win": {
+    "target": "nsis"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}
