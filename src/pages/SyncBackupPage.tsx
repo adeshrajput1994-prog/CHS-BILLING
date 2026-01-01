@@ -3,12 +3,18 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share2, FileText, Store, QrCode, Upload, Download, FileSpreadsheet, FileText as FileTextIcon } from "lucide-react";
+import { Share2, FileText, Store, QrCode, Upload, Download, FileSpreadsheet, FileText as FileTextIcon, Info } from "lucide-react";
 import { exportToExcel, importFromExcel, exportToPdf } from "@/utils/fileExportImport";
 import { showSuccess, showError } from "@/utils/toast";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// Define Farmer interface (should match the one used in FarmersPage)
+// Define interfaces for all data types (matching existing components)
 interface Farmer {
   id: string;
   farmerName: string;
@@ -21,50 +27,136 @@ interface Farmer {
   ifscCode: string;
 }
 
+interface CashBankTransaction {
+  id: string;
+  type: "Payment In" | "Payment Out";
+  farmerId: string;
+  farmerName: string;
+  amount: number;
+  paymentMethod: "Cash" | "Bank";
+  remarks?: string;
+  date: string;
+  time: string;
+}
+
+interface SalesItem {
+  uniqueId: string;
+  selectedItemId: string;
+  itemName: string;
+  weight: number;
+  rate: number;
+  amount: number;
+}
+
+interface CompleteSalesInvoice {
+  id: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  invoiceTime: string;
+  farmer: Farmer;
+  items: SalesItem[];
+  totalAmount: number;
+  advance: number;
+  due: number;
+}
+
+interface PurchaseItem {
+  uniqueId: string;
+  selectedItemId: string;
+  itemName: string;
+  grossWeight: number;
+  tareWeight: number;
+  mudDeduction: number;
+  rate: number;
+  netWeight: number;
+  finalWeight: number;
+  amount: number;
+}
+
+interface CompletePurchaseInvoice {
+  id: string;
+  purchaseNo: string;
+  purchaseDate: string;
+  purchaseTime: string;
+  farmer: Farmer;
+  items: PurchaseItem[];
+  totalAmount: number;
+  advance: number;
+  due: number;
+}
+
 const SyncBackupPage: React.FC = () => {
   const [farmers, setFarmers] = useState<Farmer[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
+  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
 
+  const [selectedFarmerFile, setSelectedFarmerFile] = useState<File | null>(null);
+  const [selectedCashBankFile, setSelectedCashBankFile] = useState<File | null>(null);
+
+  // Load all data from localStorage on initial mount
   useEffect(() => {
     const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) {
-      setFarmers(JSON.parse(storedFarmers));
+    if (storedFarmers) setFarmers(JSON.parse(storedFarmers));
+
+    const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
+    if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
+
+    const storedSalesInvoices = localStorage.getItem("salesInvoices");
+    if (storedSalesInvoices) {
+      const parsedInvoices: CompleteSalesInvoice[] = JSON.parse(storedSalesInvoices);
+      const processedInvoices = parsedInvoices.map(invoice => ({
+        ...invoice,
+        totalAmount: Number(invoice.totalAmount),
+        advance: Number(invoice.advance),
+        due: Number(invoice.due),
+      }));
+      setSalesInvoices(processedInvoices);
+    }
+
+    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
+    if (storedPurchaseInvoices) {
+      const parsedInvoices: CompletePurchaseInvoice[] = JSON.parse(storedPurchaseInvoices);
+      const processedInvoices = parsedInvoices.map(invoice => ({
+        ...invoice,
+        totalAmount: Number(invoice.totalAmount),
+        advance: Number(invoice.advance),
+        due: Number(invoice.due),
+      }));
+      setPurchaseInvoices(processedInvoices);
     }
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // --- Farmer Handlers ---
+  const handleFarmerFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      setSelectedFile(event.target.files[0]);
+      setSelectedFarmerFile(event.target.files[0]);
     } else {
-      setSelectedFile(null);
+      setSelectedFarmerFile(null);
     }
   };
 
   const handleImportFarmers = async () => {
-    if (!selectedFile) {
+    if (!selectedFarmerFile) {
       showError("Please select an Excel file to import farmers.");
       return;
     }
 
-    const importedData = await importFromExcel<Farmer>(selectedFile);
+    const importedData = await importFromExcel<Farmer>(selectedFarmerFile);
     if (importedData) {
-      // Basic validation: check if imported data has expected fields
-      const isValid = importedData.every(item => 
+      const isValid = importedData.every(item =>
         item.id && item.farmerName && item.village && item.mobileNo
       );
 
       if (!isValid) {
-        showError("Imported Excel data format is incorrect for Farmers. Please ensure it has 'id', 'farmerName', 'village', 'mobileNo' columns.");
+        showError("Imported Excel data format is incorrect for Farmers. Required columns: 'id', 'farmerName', 'village', 'mobileNo'.");
         return;
       }
 
-      // Merge or replace existing farmers. For simplicity, we'll replace for now.
-      // In a real app, you might want to handle ID conflicts, updates, etc.
       setFarmers(importedData);
       localStorage.setItem("farmers", JSON.stringify(importedData));
       showSuccess("Farmers imported and saved successfully!");
-      setSelectedFile(null); // Clear selected file
-      // You might want to trigger a refresh of the FarmersPage if it's open
+      setSelectedFarmerFile(null);
     }
   };
 
@@ -73,16 +165,13 @@ const SyncBackupPage: React.FC = () => {
   };
 
   const handleExportFarmersToPdf = () => {
-    // For PDF export, we need an element to render.
-    // Since this is a report, we'll create a temporary div with the data.
-    // In a real scenario, you might have a dedicated printable component.
     const tempDivId = "farmers-pdf-content";
     let tempDiv = document.getElementById(tempDivId);
     if (!tempDiv) {
       tempDiv = document.createElement("div");
       tempDiv.id = tempDivId;
       tempDiv.style.position = "absolute";
-      tempDiv.style.left = "-9999px"; // Hide it off-screen
+      tempDiv.style.left = "-9999px";
       document.body.appendChild(tempDiv);
     }
 
@@ -93,8 +182,13 @@ const SyncBackupPage: React.FC = () => {
           <tr style="background-color: #f2f2f2;">
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Father's Name</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Village</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Mobile No</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Aadhar No</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Account Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Account No</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">IFSC Code</th>
           </tr>
         </thead>
         <tbody>
@@ -102,8 +196,13 @@ const SyncBackupPage: React.FC = () => {
             <tr>
               <td style="border: 1px solid #ddd; padding: 8px;">${f.id}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${f.farmerName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.fathersName || '-'}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${f.village}</td>
-              <td style="border: 1px solid #ddd; padding: 8px;">${f.mobileNo}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.mobileNo || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.aadharCardNo || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.accountName || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.accountNo || '-'}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${f.ifscCode || '-'}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -112,10 +211,270 @@ const SyncBackupPage: React.FC = () => {
 
     exportToPdf(tempDivId, "Farmers_List", "Farmer List").finally(() => {
       if (tempDiv && tempDiv.parentNode) {
-        tempDiv.parentNode.removeChild(tempDiv); // Clean up the temporary div
+        tempDiv.parentNode.removeChild(tempDiv);
       }
     });
   };
+
+  // --- Cash & Bank Transaction Handlers ---
+  const handleCashBankFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedCashBankFile(event.target.files[0]);
+    } else {
+      setSelectedCashBankFile(null);
+    }
+  };
+
+  const handleImportCashBank = async () => {
+    if (!selectedCashBankFile) {
+      showError("Please select an Excel file to import cash/bank transactions.");
+      return;
+    }
+
+    const importedData = await importFromExcel<CashBankTransaction>(selectedCashBankFile);
+    if (importedData) {
+      const isValid = importedData.every(item =>
+        item.id && item.type && item.farmerId && item.farmerName && item.amount !== undefined && item.paymentMethod && item.date && item.time
+      );
+
+      if (!isValid) {
+        showError("Imported Excel data format is incorrect for Cash/Bank Transactions. Required columns: 'id', 'type', 'farmerId', 'farmerName', 'amount', 'paymentMethod', 'date', 'time'.");
+        return;
+      }
+
+      setCashBankTransactions(importedData);
+      localStorage.setItem("cashBankTransactions", JSON.stringify(importedData));
+      showSuccess("Cash/Bank Transactions imported and saved successfully!");
+      setSelectedCashBankFile(null);
+    }
+  };
+
+  const handleExportCashBankToExcel = () => {
+    exportToExcel(cashBankTransactions, "CashBank_Transactions_Data", "CashBankTransactions");
+  };
+
+  const handleExportCashBankToPdf = () => {
+    const tempDivId = "cashbank-pdf-content";
+    let tempDiv = document.getElementById(tempDivId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempDivId;
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.innerHTML = `
+      <h1 style="text-align: center; margin-bottom: 20px;">Cash & Bank Transactions</h1>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Farmer Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Method</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cashBankTransactions.map(t => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.id.substring(0, 8)}...</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.date}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.time}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.type}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.farmerName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹ ${t.amount.toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.paymentMethod}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.remarks || '-'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    exportToPdf(tempDivId, "CashBank_Transactions_List", "Cash & Bank Transactions").finally(() => {
+      if (tempDiv && tempDiv.parentNode) {
+        tempDiv.parentNode.removeChild(tempDiv);
+      }
+    });
+  };
+
+  // --- Sales Invoice Handlers ---
+  const handleExportSalesInvoicesToExcel = () => {
+    if (salesInvoices.length === 0) {
+      showError("No sales invoices to export.");
+      return;
+    }
+
+    // Flatten sales invoices for Excel export
+    const flattenedSalesData = salesInvoices.flatMap(invoice =>
+      invoice.items.map(item => ({
+        invoiceId: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        invoiceDate: invoice.invoiceDate,
+        invoiceTime: invoice.invoiceTime,
+        farmerId: invoice.farmer.id,
+        farmerName: invoice.farmer.farmerName,
+        itemName: item.itemName,
+        itemWeight: item.weight,
+        itemRate: item.rate,
+        itemAmount: item.amount,
+        totalInvoiceAmount: invoice.totalAmount,
+        advancePaid: invoice.advance,
+        dueAmount: invoice.due,
+      }))
+    );
+    exportToExcel(flattenedSalesData, "Sales_Invoices_Data", "SalesInvoices");
+  };
+
+  const handleExportSalesInvoicesToPdf = () => {
+    const tempDivId = "sales-invoices-pdf-content";
+    let tempDiv = document.getElementById(tempDivId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempDivId;
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.innerHTML = `
+      <h1 style="text-align: center; margin-bottom: 20px;">Sales Invoices</h1>
+      ${salesInvoices.length === 0 ? '<p style="text-align: center;">No sales invoices to display.</p>' : salesInvoices.map(invoice => `
+        <div style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
+          <h2 style="font-size: 1.2em; margin-bottom: 5px;">Invoice No: ${invoice.invoiceNo}</h2>
+          <p><strong>Date:</strong> ${invoice.invoiceDate} <strong>Time:</strong> ${invoice.invoiceTime}</p>
+          <p><strong>Farmer:</strong> ${invoice.farmer.farmerName} (ID: ${invoice.farmer.id})</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr style="background-color: #f9f9f9;">
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Weight (KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Rate (₹/KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items.map(item => `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 6px;">${item.itemName}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.weight.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.rate.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.amount.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <p style="text-align: right; margin-top: 10px;"><strong>Total:</strong> ₹${invoice.totalAmount.toFixed(2)}</p>
+          <p style="text-align: right;"><strong>Advance:</strong> ₹${invoice.advance.toFixed(2)}</p>
+          <p style="text-align: right;"><strong>Due:</strong> ₹${invoice.due.toFixed(2)}</p>
+        </div>
+      `).join('')}
+    `;
+
+    exportToPdf(tempDivId, "Sales_Invoices_List", "Sales Invoices").finally(() => {
+      if (tempDiv && tempDiv.parentNode) {
+        tempDiv.parentNode.removeChild(tempDiv);
+      }
+    });
+  };
+
+  // --- Purchase Invoice Handlers ---
+  const handleExportPurchaseInvoicesToExcel = () => {
+    if (purchaseInvoices.length === 0) {
+      showError("No purchase invoices to export.");
+      return;
+    }
+
+    // Flatten purchase invoices for Excel export
+    const flattenedPurchaseData = purchaseInvoices.flatMap(invoice =>
+      invoice.items.map(item => ({
+        purchaseId: invoice.id,
+        purchaseNo: invoice.purchaseNo,
+        purchaseDate: invoice.purchaseDate,
+        purchaseTime: invoice.purchaseTime,
+        farmerId: invoice.farmer.id,
+        farmerName: invoice.farmer.farmerName,
+        itemName: item.itemName,
+        itemGrossWeight: item.grossWeight,
+        itemTareWeight: item.tareWeight,
+        itemMudDeduction: item.mudDeduction,
+        itemNetWeight: item.netWeight,
+        itemFinalWeight: item.finalWeight,
+        itemRate: item.rate,
+        itemAmount: item.amount,
+        totalPurchaseAmount: invoice.totalAmount,
+        advancePaid: invoice.advance,
+        dueAmount: invoice.due,
+      }))
+    );
+    exportToExcel(flattenedPurchaseData, "Purchase_Invoices_Data", "PurchaseInvoices");
+  };
+
+  const handleExportPurchaseInvoicesToPdf = () => {
+    const tempDivId = "purchase-invoices-pdf-content";
+    let tempDiv = document.getElementById(tempDivId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempDivId;
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.innerHTML = `
+      <h1 style="text-align: center; margin-bottom: 20px;">Purchase Invoices</h1>
+      ${purchaseInvoices.length === 0 ? '<p style="text-align: center;">No purchase invoices to display.</p>' : purchaseInvoices.map(invoice => `
+        <div style="margin-bottom: 20px; border: 1px solid #eee; padding: 10px; border-radius: 5px;">
+          <h2 style="font-size: 1.2em; margin-bottom: 5px;">Purchase No: ${invoice.purchaseNo}</h2>
+          <p><strong>Date:</strong> ${invoice.purchaseDate} <strong>Time:</strong> ${invoice.purchaseTime}</p>
+          <p><strong>Farmer:</strong> ${invoice.farmer.farmerName} (ID: ${invoice.farmer.id})</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+              <tr style="background-color: #f9f9f9;">
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: left;">Item</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Gross Wt (KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Tare Wt (KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Net Wt (KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Mud (%)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Final Wt (KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Rate (₹/KG)</th>
+                <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items.map(item => `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 6px;">${item.itemName}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.grossWeight.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.tareWeight.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.netWeight.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.mudDeduction.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.finalWeight.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.rate.toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.amount.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <p style="text-align: right; margin-top: 10px;"><strong>Total:</strong> ₹${invoice.totalAmount.toFixed(2)}</p>
+          <p style="text-align: right;"><strong>Advance:</strong> ₹${invoice.advance.toFixed(2)}</p>
+          <p style="text-align: right;"><strong>Due:</strong> ₹${invoice.due.toFixed(2)}</p>
+        </div>
+      `).join('')}
+    `;
+
+    exportToPdf(tempDivId, "Purchase_Invoices_List", "Purchase Invoices").finally(() => {
+      if (tempDiv && tempDiv.parentNode) {
+        tempDiv.parentNode.removeChild(tempDiv);
+      }
+    });
+  };
+
 
   return (
     <div className="space-y-8 p-4">
@@ -127,7 +486,7 @@ const SyncBackupPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {/* Data Export Section */}
-        <Card>
+        <Card className="col-span-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xl font-semibold">Data Export</CardTitle>
             <Download className="h-6 w-6 text-muted-foreground" />
@@ -136,30 +495,64 @@ const SyncBackupPage: React.FC = () => {
             <CardDescription className="mb-4">
               Export your current data to Excel or PDF for backup or sharing.
             </CardDescription>
-            <div className="space-y-3">
-              <h3 className="font-medium">Farmers Data:</h3>
-              <div className="flex space-x-2">
-                <Button onClick={handleExportFarmersToExcel} className="flex-1" disabled={farmers.length === 0}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Farmers to Excel
-                </Button>
-                <Button onClick={handleExportFarmersToPdf} className="flex-1" disabled={farmers.length === 0}>
-                  <FileTextIcon className="mr-2 h-4 w-4" /> Export Farmers to PDF
-                </Button>
+            <div className="space-y-6">
+              {/* Farmers Export */}
+              <div>
+                <h3 className="font-medium mb-2">Farmers Data:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportFarmersToExcel} className="flex-1" disabled={farmers.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Farmers to Excel
+                  </Button>
+                  <Button onClick={handleExportFarmersToPdf} className="flex-1" disabled={farmers.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Farmers to PDF
+                  </Button>
+                </div>
               </div>
-              {/* Add more export options here for other data types */}
-              {/*
-              <h3 className="font-medium mt-4">Sales Invoices:</h3>
-              <div className="flex space-x-2">
-                <Button variant="outline" className="flex-1" disabled>Export Sales to Excel</Button>
-                <Button variant="outline" className="flex-1" disabled>Export Sales to PDF</Button>
+
+              {/* Cash & Bank Transactions Export */}
+              <div>
+                <h3 className="font-medium mb-2">Cash & Bank Transactions:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportCashBankToExcel} className="flex-1" disabled={cashBankTransactions.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Transactions to Excel
+                  </Button>
+                  <Button onClick={handleExportCashBankToPdf} className="flex-1" disabled={cashBankTransactions.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Transactions to PDF
+                  </Button>
+                </div>
               </div>
-              */}
+
+              {/* Sales Invoices Export */}
+              <div>
+                <h3 className="font-medium mb-2">Sales Invoices:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportSalesInvoicesToExcel} className="flex-1" disabled={salesInvoices.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Sales to Excel
+                  </Button>
+                  <Button onClick={handleExportSalesInvoicesToPdf} className="flex-1" disabled={salesInvoices.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Sales to PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Purchase Invoices Export */}
+              <div>
+                <h3 className="font-medium mb-2">Purchase Invoices:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportPurchaseInvoicesToExcel} className="flex-1" disabled={purchaseInvoices.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Purchases to Excel
+                  </Button>
+                  <Button onClick={handleExportPurchaseInvoicesToPdf} className="flex-1" disabled={purchaseInvoices.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Purchases to PDF
+                  </Button>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Data Import Section */}
-        <Card>
+        <Card className="col-span-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xl font-semibold">Data Import</CardTitle>
             <Upload className="h-6 w-6 text-muted-foreground" />
@@ -168,16 +561,74 @@ const SyncBackupPage: React.FC = () => {
             <CardDescription className="mb-4">
               Import data from Excel files. Ensure the file format matches the expected structure.
             </CardDescription>
-            <div className="space-y-3">
-              <h3 className="font-medium">Farmers Data:</h3>
-              <div className="flex items-center space-x-2">
-                <Input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="flex-1" />
-                <Button onClick={handleImportFarmers} disabled={!selectedFile}>
-                  <Upload className="mr-2 h-4 w-4" /> Import Farmers
-                </Button>
+            <div className="space-y-6">
+              {/* Farmers Import */}
+              <div>
+                <h3 className="font-medium mb-2">Farmers Data:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" onChange={handleFarmerFileChange} className="flex-1" />
+                  <Button onClick={handleImportFarmers} disabled={!selectedFarmerFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Farmers
+                  </Button>
+                </div>
+                {selectedFarmerFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFarmerFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Farmers:</p>
+                        <p><code>id</code> (e.g., F001), <code>farmerName</code>, <code>fathersName</code>, <code>village</code>, <code>mobileNo</code>, <code>aadharCardNo</code>, <code>accountName</code>, <code>accountNo</code>, <code>ifscCode</code></p>
+                        <p className="mt-1">All columns are expected as text. 'id', 'farmerName', 'village', 'mobileNo' are crucial.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
               </div>
-              {selectedFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedFile.name}</p>}
-              {/* Add more import options here for other data types */}
+
+              {/* Cash & Bank Transactions Import */}
+              <div>
+                <h3 className="font-medium mb-2">Cash & Bank Transactions:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" onChange={handleCashBankFileChange} className="flex-1" />
+                  <Button onClick={handleImportCashBank} disabled={!selectedCashBankFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Transactions
+                  </Button>
+                </div>
+                {selectedCashBankFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedCashBankFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Cash/Bank Transactions:</p>
+                        <p><code>id</code> (e.g., txn-...), <code>type</code> (e.g., "Payment In" or "Payment Out"), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>amount</code> (number), <code>paymentMethod</code> (e.g., "Cash" or "Bank"), <code>remarks</code>, <code>date</code> (YYYY-MM-DD), <code>time</code> (HH:MM AM/PM)</p>
+                        <p className="mt-1">All columns are expected as text, except 'amount' as a number.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
+              </div>
+
+              {/* Sales & Purchase Invoices Import (Disabled with explanation) */}
+              <div>
+                <h3 className="font-medium mb-2">Sales & Purchase Invoices:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" disabled className="flex-1" />
+                  <Button disabled>
+                    <Upload className="mr-2 h-4 w-4" /> Import Invoices
+                  </Button>
+                </div>
+                <p className="text-sm text-red-500 mt-2">
+                  Importing Sales and Purchase Invoices with nested item details from a simple Excel file is not supported client-side due to data complexity. For this feature, a backend database is recommended.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
