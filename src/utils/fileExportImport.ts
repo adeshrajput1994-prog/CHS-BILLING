@@ -104,3 +104,64 @@ export const exportToPdf = async (elementId: string, filename: string, title: st
     showError("Failed to export data to PDF.");
   }
 };
+
+// --- JSON Export/Import Utilities for full app data ---
+
+export const exportToJson = (data: Record<string, any>, filename: string) => {
+  try {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showSuccess(`Data exported to ${filename}.json successfully!`);
+  } catch (error) {
+    console.error("Error exporting to JSON:", error);
+    showError("Failed to export data to JSON.");
+  }
+};
+
+export const importFromJson = (file: File): Promise<Record<string, any> | null> => {
+  return new Promise((resolve) => {
+    if (!file) {
+      showError("No file selected for import.");
+      resolve(null);
+      return;
+    }
+    if (!file.name.endsWith('.json')) {
+      showError("Please select a JSON file (.json).");
+      resolve(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        if (!data) {
+          showError("Failed to read file data.");
+          resolve(null);
+          return;
+        }
+        const json = JSON.parse(data as string);
+        showSuccess("Data imported from JSON successfully!");
+        resolve(json);
+      } catch (error) {
+        console.error("Error importing from JSON:", error);
+        showError("Failed to import data from JSON. Please ensure the file format is correct.");
+        resolve(null);
+      }
+    };
+    reader.onerror = (error) => {
+      console.error("FileReader error:", error);
+      showError("Error reading the file.");
+      resolve(null);
+    };
+    reader.readAsText(file);
+  });
+};
