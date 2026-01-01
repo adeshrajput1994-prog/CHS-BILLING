@@ -11,17 +11,10 @@ import { Plus } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 
 const CompanySettingsPage: React.FC = () => {
-  const { 
-    companies, 
-    selectedCompany, 
-    selectedFinancialYear, 
-    addCompany, 
-    selectCompany, 
-    selectFinancialYear,
-    loading, // Get loading state from context
+  const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear, loading, // Get loading state from context
     error // Get error state from context
   } = useCompany();
-  
+
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
   const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
@@ -115,6 +108,7 @@ const CompanySettingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
           {selectedCompany && (
             <div className="space-y-2">
               <Label htmlFor="selectFinancialYear">Select Financial Year</Label>
@@ -132,6 +126,7 @@ const CompanySettingsPage: React.FC = () => {
               </Select>
             </div>
           )}
+
           {selectedCompany && (
             <div className="mt-4 p-4 border rounded-md bg-muted">
               <p className="text-sm font-medium">Current Company: <span className="font-bold">{selectedCompany.name}</span></p>
