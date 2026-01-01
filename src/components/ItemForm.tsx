@@ -17,14 +17,19 @@ const itemSchema = z.object({
     (val) => Number(val),
     z.number().min(0.01, { message: "Rate per KG must be a positive number." })
   ),
+  stock: z.preprocess( // New stock field
+    (val) => Number(val),
+    z.number().min(0, { message: "Stock cannot be negative." })
+  ),
 });
 
 type ItemFormValues = z.infer<typeof itemSchema>;
 
-interface Item {
+export interface Item { // Exported for use in other components
   id: string;
   itemName: string;
   ratePerKg: number;
+  stock: number; // New stock field
 }
 
 interface ItemFormProps {
@@ -39,6 +44,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
     defaultValues: initialData || {
       itemName: "",
       ratePerKg: 0,
+      stock: 0, // Default stock
     },
   });
 
@@ -50,6 +56,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
       form.reset({
         itemName: "",
         ratePerKg: 0,
+        stock: 0,
       });
     }
   }, [initialData, form]);
@@ -94,6 +101,13 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
             <Input id="ratePerKg" placeholder="Rate per KG" type="number" step="0.01" {...form.register("ratePerKg")} />
             {form.formState.errors.ratePerKg && (
               <p className="text-red-500 text-sm">{form.formState.errors.ratePerKg.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stock">Current Stock (KG)</Label>
+            <Input id="stock" placeholder="0.00" type="number" step="0.01" {...form.register("stock")} />
+            {form.formState.errors.stock && (
+              <p className="text-red-500 text-sm">{form.formState.errors.stock.message}</p>
             )}
           </div>
           <div className="flex justify-end space-x-2">

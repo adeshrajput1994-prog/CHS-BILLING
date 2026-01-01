@@ -35,6 +35,7 @@ import {
 import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
+import { Item as GlobalItem } from "./ItemForm"; // Import Item interface from ItemForm
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -47,12 +48,6 @@ interface Farmer {
   accountName: string;
   accountNo: string;
   ifscCode: string;
-}
-
-interface Item {
-  id: string;
-  itemName: string;
-  ratePerKg: number;
 }
 
 // Zod schema for a single item within the purchase invoice
@@ -126,7 +121,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
-  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [allItems, setAllItems] = useState<GlobalItem[]>([]); // Use GlobalItem for stock management
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
     initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
@@ -177,8 +172,9 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     }
     const storedItems = localStorage.getItem("items");
     if (storedItems) {
-      setAllItems(JSON.parse(storedItems));
-      console.log("PurchaseForm: Loaded items:", JSON.parse(storedItems));
+      const parsedItems: GlobalItem[] = JSON.parse(storedItems);
+      setAllItems(parsedItems.map(item => ({ ...item, stock: Number(item.stock || 0) }))); // Ensure stock is number
+      console.log("PurchaseForm: Loaded items:", parsedItems);
     }
   }, []);
 
@@ -253,6 +249,22 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   const advanceAmount = purchaseForm.watch("advance");
   const dueAmount = totalAmount - advanceAmount;
 
+  const updateItemStock = (itemsToUpdate: PurchaseItem[], type: 'add' | 'deduct') => {
+    const currentStoredItems: GlobalItem[] = JSON.parse(localStorage.getItem("items") || "[]");
+    const updatedStoredItems = currentStoredItems.map(storedItem => {
+      const itemInInvoice = itemsToUpdate.find(invItem => invItem.selectedItemId === storedItem.id);
+      if (itemInInvoice) {
+        const newStock = type === 'add'
+          ? storedItem.stock + itemInInvoice.finalWeight
+          : storedItem.stock - itemInInvoice.finalWeight;
+        return { ...storedItem, stock: newStock };
+      }
+      return storedItem;
+    });
+    localStorage.setItem("items", JSON.stringify(updatedStoredItems));
+    setAllItems(updatedStoredItems); // Update local state as well
+  };
+
   const onSubmitPurchaseInvoice = (data: PurchaseInvoiceFormValues) => {
     try {
       console.log("PurchaseForm: Attempting to submit purchase invoice with data:", data);
@@ -278,6 +290,17 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         advance: advanceAmount,
         due: dueAmount,
       };
+
+      // Handle stock update
+      if (initialData) {
+        // If editing, first deduct stock for old items, then add for new items
+        const oldItems = initialData.items;
+        updateItemStock(oldItems, 'deduct'); // Deduct old items' stock
+        updateItemStock(purchaseItems, 'add'); // Add new items' stock
+      } else {
+        // If adding new invoice, just add stock
+        updateItemStock(purchaseItems, 'add');
+      }
 
       onSave(completeInvoice);
       showSuccess(`Purchase Invoice ${initialData ? "updated" : "created"} successfully!`);
@@ -549,7 +572,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                                   selectedItemForAdd === item.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG)
+                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG, Stock: {item.stock.toFixed(2)} KG)
                             </CommandItem>
                           ))}
                         </CommandGroup>

@@ -35,6 +35,7 @@ import {
 import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
+import { Item as GlobalItem } from "./ItemForm"; // Import Item interface from ItemForm
 
 // Interfaces for Farmer and Item data from localStorage
 interface Farmer {
@@ -47,12 +48,6 @@ interface Farmer {
   accountName: string;
   accountNo: string;
   ifscCode: string;
-}
-
-interface Item {
-  id: string;
-  itemName: string;
-  ratePerKg: number;
 }
 
 // Zod schema for a single item within the sales invoice
@@ -116,7 +111,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
   const [allFarmers, setAllFarmers] = useState<Farmer[]>([]);
-  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [allItems, setAllItems] = useState<GlobalItem[]>([]); // Use GlobalItem for stock management
   const [salesItems, setSalesItems] = useState<SalesItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
     initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
@@ -165,8 +160,9 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     }
     const storedItems = localStorage.getItem("items");
     if (storedItems) {
-      setAllItems(JSON.parse(storedItems));
-      console.log("SalesForm: Loaded items:", JSON.parse(storedItems));
+      const parsedItems: GlobalItem[] = JSON.parse(storedItems);
+      setAllItems(parsedItems.map(item => ({ ...item, stock: Number(item.stock || 0) }))); // Ensure stock is number
+      console.log("SalesForm: Loaded items:", parsedItems);
     }
   }, []);
 
@@ -197,6 +193,11 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       if (!itemDetails) {
         showError("Selected item not found.");
         console.error("SalesForm: Selected item not found for ID:", data.selectedItemId);
+        return;
+      }
+
+      if (itemDetails.stock < data.weight) {
+        showError(`Insufficient stock for ${itemDetails.itemName}. Available: ${itemDetails.stock.toFixed(2)} KG`);
         return;
       }
 
@@ -236,6 +237,22 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
   const advanceAmount = salesForm.watch("advance");
   const dueAmount = totalAmount - advanceAmount;
 
+  const updateItemStock = (itemsToUpdate: SalesItem[], type: 'deduct' | 'add') => {
+    const currentStoredItems: GlobalItem[] = JSON.parse(localStorage.getItem("items") || "[]");
+    const updatedStoredItems = currentStoredItems.map(storedItem => {
+      const itemInInvoice = itemsToUpdate.find(invItem => invItem.selectedItemId === storedItem.id);
+      if (itemInInvoice) {
+        const newStock = type === 'deduct'
+          ? storedItem.stock - itemInInvoice.weight
+          : storedItem.stock + itemInInvoice.weight;
+        return { ...storedItem, stock: newStock };
+      }
+      return storedItem;
+    });
+    localStorage.setItem("items", JSON.stringify(updatedStoredItems));
+    setAllItems(updatedStoredItems); // Update local state as well
+  };
+
   const onSubmitSalesInvoice = (data: SalesInvoiceFormValues) => {
     try {
       console.log("SalesForm: Attempting to submit sales invoice with data:", data);
@@ -261,6 +278,17 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         advance: advanceAmount,
         due: dueAmount,
       };
+
+      // Handle stock update
+      if (initialData) {
+        // If editing, first revert stock for old items, then deduct for new items
+        const oldItems = initialData.items;
+        updateItemStock(oldItems, 'add'); // Add back old items' stock
+        updateItemStock(salesItems, 'deduct'); // Deduct new items' stock
+      } else {
+        // If adding new invoice, just deduct stock
+        updateItemStock(salesItems, 'deduct');
+      }
 
       onSave(completeInvoice);
       showSuccess(`Sales Invoice ${initialData ? "updated" : "created"} successfully!`);
@@ -460,7 +488,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
               </div>
               <div className="col-start-2 row-start-5 flex items-center space-x-2">
                 <Label htmlFor="bank" className="w-1/2 text-right">BANK</Label>
-                <Input id="bank" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
+                <Input id="bank" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" /> {/* Assuming bank name is account name */}
               </div>
             </div>
           </CardContent>
@@ -509,7 +537,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                                   selectedItemForAdd === item.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG)
+                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG, Stock: {item.stock.toFixed(2)} KG)
                             </CommandItem>
                           ))}
                         </CommandGroup>

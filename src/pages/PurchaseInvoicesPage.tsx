@@ -7,6 +7,7 @@ import PurchaseInvoiceForm, { CompletePurchaseInvoice } from "@/components/Purch
 import PurchaseInvoiceTable from "@/components/PurchaseInvoiceTable";
 import { Input } from "@/components/ui/input";
 import { showSuccess } from "@/utils/toast";
+import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
 
 // Helper function to get the next purchase number (e.g., P-YYYYMMDD-001)
 const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
@@ -85,8 +86,23 @@ const PurchaseInvoicesPage: React.FC = () => {
   };
 
   const handleDeleteInvoice = (id: string) => {
-    setInvoices((prevInvoices) => prevInvoices.filter((invoice) => invoice.id !== id));
-    showSuccess("Purchase Invoice deleted successfully!");
+    setInvoices((prevInvoices) => {
+      const invoiceToDelete = prevInvoices.find(inv => inv.id === id);
+      if (invoiceToDelete) {
+        // Revert stock for items in the deleted invoice
+        const currentStoredItems: GlobalItem[] = JSON.parse(localStorage.getItem("items") || "[]");
+        const updatedStoredItems = currentStoredItems.map(storedItem => {
+          const itemInDeletedInvoice = invoiceToDelete.items.find(invItem => invItem.selectedItemId === storedItem.id);
+          if (itemInDeletedInvoice) {
+            return { ...storedItem, stock: storedItem.stock - itemInDeletedInvoice.finalWeight };
+          }
+          return storedItem;
+        });
+        localStorage.setItem("items", JSON.stringify(updatedStoredItems));
+      }
+      showSuccess("Purchase Invoice deleted successfully!");
+      return prevInvoices.filter((invoice) => invoice.id !== id);
+    });
   };
 
   const handleOpenAddForm = () => {

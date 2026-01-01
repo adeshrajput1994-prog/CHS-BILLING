@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
 
 // Define interfaces for all data types (matching existing components)
 interface Farmer {
@@ -31,6 +32,7 @@ interface Item {
   id: string;
   itemName: string;
   ratePerKg: number;
+  stock: number; // Added stock
 }
 
 interface CashBankTransaction {
@@ -96,11 +98,13 @@ const SyncBackupPage: React.FC = () => {
   const [allAvailableItems, setAllAvailableItems] = useState<Item[]>([]); // All items for lookup
 
   const [farmers, setFarmers] = useState<Farmer[]>([]);
+  const [items, setItems] = useState<Item[]>([]); // State for items
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
 
   const [selectedFarmerFile, setSelectedFarmerFile] = useState<File | null>(null);
+  const [selectedItemFile, setSelectedItemFile] = useState<File | null>(null); // New state for item file
   const [selectedCashBankFile, setSelectedCashBankFile] = useState<File | null>(null);
   const [selectedSalesInvoiceFile, setSelectedSalesInvoiceFile] = useState<File | null>(null);
   const [selectedPurchaseInvoiceFile, setSelectedPurchaseInvoiceFile] = useState<File | null>(null);
@@ -116,7 +120,14 @@ const SyncBackupPage: React.FC = () => {
 
     const storedItems = localStorage.getItem("items");
     if (storedItems) {
-      setAllAvailableItems(JSON.parse(storedItems)); // Set for lookup
+      const parsedItems: Item[] = JSON.parse(storedItems);
+      const processedItems = parsedItems.map(item => ({
+        ...item,
+        ratePerKg: Number(item.ratePerKg),
+        stock: Number(item.stock || 0), // Ensure stock is number
+      }));
+      setItems(processedItems);
+      setAllAvailableItems(processedItems); // Set for lookup
     }
 
     const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
@@ -237,6 +248,86 @@ const SyncBackupPage: React.FC = () => {
     });
   };
 
+  // --- Item Handlers ---
+  const handleItemFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedItemFile(event.target.files[0]);
+    } else {
+      setSelectedItemFile(null);
+    }
+  };
+
+  const handleImportItems = async () => {
+    if (!selectedItemFile) {
+      showError("Please select an Excel file to import items.");
+      return;
+    }
+
+    const importedData = await importFromExcel<Item>(selectedItemFile);
+    if (importedData) {
+      const isValid = importedData.every(item =>
+        item.id && item.itemName && item.ratePerKg !== undefined && item.stock !== undefined
+      );
+
+      if (!isValid) {
+        showError("Imported Excel data format is incorrect for Items. Required columns: 'id', 'itemName', 'ratePerKg', 'stock'.");
+        return;
+      }
+
+      setItems(importedData);
+      setAllAvailableItems(importedData); // Update lookup list
+      localStorage.setItem("items", JSON.stringify(importedData));
+      showSuccess("Items imported and saved successfully!");
+      setSelectedItemFile(null);
+    }
+  };
+
+  const handleExportItemsToExcel = () => {
+    exportToExcel(items, "Items_Data", "Items");
+  };
+
+  const handleExportItemsToPdf = () => {
+    const tempDivId = "items-pdf-content";
+    let tempDiv = document.getElementById(tempDivId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempDivId;
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.innerHTML = `
+      <h1 style="text-align: center; margin-bottom: 20px;">Item List</h1>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item Name</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Rate per KG (₹)</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Current Stock (KG)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${item.id}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${item.itemName}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹ ${item.ratePerKg.toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${item.stock.toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    exportToPdf(tempDivId, "Items_List", "Item List").finally(() => {
+      if (tempDiv && tempDiv.parentNode) {
+        tempDiv.parentNode.removeChild(tempDiv);
+      }
+    });
+  };
+
   // --- Cash & Bank Transaction Handlers ---
   const handleCashBankFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -292,7 +383,7 @@ const SyncBackupPage: React.FC = () => {
           <tr style="background-color: #f2f2f2;">
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
-            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Time</th>
+            <th style="1px solid #ddd; padding: 8px; text-align: left;">Time</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Farmer Name</th>
             <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount</th>
@@ -711,6 +802,19 @@ const SyncBackupPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Items Export */}
+              <div>
+                <h3 className="font-medium mb-2">Items Data:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportItemsToExcel} className="flex-1" disabled={items.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Items to Excel
+                  </Button>
+                  <Button onClick={handleExportItemsToPdf} className="flex-1" disabled={items.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Items to PDF
+                  </Button>
+                </div>
+              </div>
+
               {/* Cash & Bank Transactions Export */}
               <div>
                 <h3 className="font-medium mb-2">Cash & Bank Transactions:</h3>
@@ -784,6 +888,33 @@ const SyncBackupPage: React.FC = () => {
                         <p className="font-semibold">Expected Excel Columns for Farmers:</p>
                         <p><code>id</code> (e.g., F001), <code>farmerName</code>, <code>fathersName</code>, <code>village</code>, <code>mobileNo</code>, <code>aadharCardNo</code>, <code>accountName</code>, <code>accountNo</code>, <code>ifscCode</code></p>
                         <p className="mt-1">All columns are expected as text. 'id', 'farmerName', 'village', 'mobileNo' are crucial.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
+              </div>
+
+              {/* Items Import */}
+              <div>
+                <h3 className="font-medium mb-2">Items Data:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" onChange={handleItemFileChange} className="flex-1" />
+                  <Button onClick={handleImportItems} disabled={!selectedItemFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Items
+                  </Button>
+                </div>
+                {selectedItemFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedItemFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Items:</p>
+                        <p><code>id</code> (e.g., I001), <code>itemName</code>, <code>ratePerKg</code> (number), <code>stock</code> (number)</p>
+                        <p className="mt-1">All columns are expected as text, except 'ratePerKg' and 'stock' as numbers.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

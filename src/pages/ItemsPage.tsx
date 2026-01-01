@@ -3,16 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Printer } from "lucide-react";
-import ItemForm from "@/components/ItemForm";
+import ItemForm, { Item } from "@/components/ItemForm"; // Import Item interface from ItemForm
 import ItemTable from "@/components/ItemTable"; // Import the new ItemTable
 import { Input } from "@/components/ui/input";
 import { getNextItemId } from "@/utils/idGenerators"; // Import from new utility
-
-interface Item {
-  id: string;
-  itemName: string;
-  ratePerKg: number;
-}
+import { showSuccess } from "@/utils/toast";
 
 const ItemsPage = () => {
   const [items, setItems] = useState<Item[]>([]);
@@ -24,7 +19,14 @@ const ItemsPage = () => {
   useEffect(() => {
     const storedItems = localStorage.getItem("items");
     if (storedItems) {
-      setItems(JSON.parse(storedItems));
+      const parsedItems: Item[] = JSON.parse(storedItems);
+      // Ensure stock is a number, default to 0 if missing
+      const processedItems = parsedItems.map(item => ({
+        ...item,
+        ratePerKg: Number(item.ratePerKg),
+        stock: Number(item.stock || 0), // Ensure stock is a number, default to 0
+      }));
+      setItems(processedItems);
     }
   }, []);
 
@@ -35,23 +37,26 @@ const ItemsPage = () => {
 
   const handleAddItem = (newItemData: Omit<Item, 'id'>) => {
     const newId = getNextItemId(items);
-    const newItem: Item = { id: newId, ...newItemData };
+    const newItem: Item = { id: newId, ...newItemData, stock: Number(newItemData.stock || 0) }; // Ensure stock is number
     setItems((prevItems) => [...prevItems, newItem]);
+    showSuccess("Item added successfully!");
     setViewMode('list'); // Go back to list view after adding
   };
 
   const handleEditItem = (updatedItemData: Item) => {
     setItems((prevItems) =>
       prevItems.map((item) =>
-        item.id === updatedItemData.id ? updatedItemData : item
+        item.id === updatedItemData.id ? { ...updatedItemData, stock: Number(updatedItemData.stock || 0) } : item // Ensure stock is number
       )
     );
+    showSuccess("Item updated successfully!");
     setEditingItem(null); // Clear editing state
     setViewMode('list'); // Go back to list view after editing
   };
 
   const handleDeleteItem = (id: string) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+    showSuccess("Item deleted successfully!");
   };
 
   const handleCancelForm = () => {
