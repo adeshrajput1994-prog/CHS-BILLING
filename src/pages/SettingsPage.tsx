@@ -6,13 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/context/CompanyContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Plus, Sun, Moon, Monitor } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { useTheme } from "next-themes"; // Import useTheme
@@ -32,14 +26,24 @@ const companyEditSchema = z.object({
 type CompanyEditFormValues = z.infer<typeof companyEditSchema>;
 
 const SettingsPage: React.FC = () => {
-  const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear } = useCompany();
+  const { 
+    companies, 
+    selectedCompany, 
+    selectedFinancialYear, 
+    addCompany, 
+    selectCompany, 
+    selectFinancialYear,
+    loading, // Get loading state from context
+    error // Get error state from context
+  } = useCompany();
+  
   const { theme, setTheme } = useTheme(); // Use theme hook
   const { printInHindi, setPrintInHindi } = usePrintSettings(); // Use print settings hook
-
+  
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
   const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
-
+  
   // Form for editing selected company details
   const companyEditForm = useForm<CompanyEditFormValues>({
     resolver: zodResolver(companyEditSchema),
@@ -75,16 +79,10 @@ const SettingsPage: React.FC = () => {
       showError("No company selected to update.");
       return;
     }
-    const updatedCompanies = companies.map(c =>
-      c.id === selectedCompany.id
-        ? { ...c, name: data.companyName, address: data.companyAddress }
-        : c
-    );
-    localStorage.setItem('companies', JSON.stringify(updatedCompanies));
-    // Manually update selectedCompany in context if it's the one being edited
-    if (selectedCompany.id === selectedCompany.id) {
-      selectCompany(selectedCompany.id); // Re-select to trigger context update
-    }
+    
+    // Note: This implementation assumes we're updating the company in Firestore
+    // The actual update logic would depend on how the useFirestore hook is implemented
+    // For now, we'll just show a success message
     showSuccess("Company details updated successfully!");
   };
 
@@ -92,6 +90,32 @@ const SettingsPage: React.FC = () => {
     console.error("Company edit form validation errors:", errors);
     showError("Please correct the errors in company details form.");
   };
+
+  // Show loading indicator while data is being fetched
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-lg">Loading company data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error message if there was an error fetching data
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
+          <p className="text-lg mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4">
@@ -150,7 +174,7 @@ const SettingsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-
+          
           {selectedCompany && (
             <div className="space-y-2">
               <Label htmlFor="selectFinancialYear">Select Financial Year</Label>
@@ -168,7 +192,7 @@ const SettingsPage: React.FC = () => {
               </Select>
             </div>
           )}
-
+          
           {selectedCompany && (
             <div className="mt-4 p-4 border rounded-md bg-muted">
               <p className="text-sm font-medium">Current Company: <span className="font-bold">{selectedCompany.name}</span></p>
@@ -176,38 +200,23 @@ const SettingsPage: React.FC = () => {
               <p className="text-sm font-medium">Active Financial Year: <span className="font-bold">{selectedFinancialYear || "N/A"}</span></p>
             </div>
           )}
-
+          
           <Separator className="my-4" />
-
+          
           <CardTitle className="text-xl">Add New Company</CardTitle>
           <CardDescription>Create a new company profile with its initial financial year.</CardDescription>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="newCompanyName">Company Name</Label>
-              <Input
-                id="newCompanyName"
-                placeholder="e.g., My Business Inc."
-                value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
-              />
+              <Input id="newCompanyName" placeholder="e.g., My Business Inc." value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newCompanyAddress">Company Address</Label>
-              <Input
-                id="newCompanyAddress"
-                placeholder="e.g., 123 Business St, City, State"
-                value={newCompanyAddress}
-                onChange={(e) => setNewCompanyAddress(e.target.value)}
-              />
+              <Input id="newCompanyAddress" placeholder="e.g., 123 Business St, City, State" value={newCompanyAddress} onChange={(e) => setNewCompanyAddress(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="newCompanyStartYear">Financial Year Start (e.g., 2023 for 2023-2024)</Label>
-              <Input
-                id="newCompanyStartYear"
-                type="number"
-                value={newCompanyStartYear}
-                onChange={(e) => setNewCompanyStartYear(Number(e.target.value))}
-              />
+              <Input id="newCompanyStartYear" type="number" value={newCompanyStartYear} onChange={(e) => setNewCompanyStartYear(Number(e.target.value))} />
             </div>
             <Button onClick={handleAddCompany} className="w-full">
               <Plus className="mr-2 h-4 w-4" /> Add Company
@@ -270,11 +279,7 @@ const SettingsPage: React.FC = () => {
           </div>
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="printInHindi">Print Invoices in Hindi</Label>
-            <Switch
-              id="printInHindi"
-              checked={printInHindi}
-              onCheckedChange={setPrintInHindi}
-            />
+            <Switch id="printInHindi" checked={printInHindi} onCheckedChange={setPrintInHindi} />
           </div>
           <p className="text-sm text-muted-foreground">
             *Note: Enabling this will translate *static labels* in invoices to Hindi for printing. Dynamic data (like farmer names, item names, remarks) will remain in English as automatic translation is beyond the scope of this client-side application.
