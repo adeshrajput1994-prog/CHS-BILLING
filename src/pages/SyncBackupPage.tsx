@@ -27,6 +27,12 @@ interface Farmer {
   ifscCode: string;
 }
 
+interface Item {
+  id: string;
+  itemName: string;
+  ratePerKg: number;
+}
+
 interface CashBankTransaction {
   id: string;
   type: "Payment In" | "Payment Out";
@@ -86,6 +92,9 @@ interface CompletePurchaseInvoice {
 }
 
 const SyncBackupPage: React.FC = () => {
+  const [allAvailableFarmers, setAllAvailableFarmers] = useState<Farmer[]>([]); // All farmers for lookup
+  const [allAvailableItems, setAllAvailableItems] = useState<Item[]>([]); // All items for lookup
+
   const [farmers, setFarmers] = useState<Farmer[]>([]);
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
@@ -93,11 +102,22 @@ const SyncBackupPage: React.FC = () => {
 
   const [selectedFarmerFile, setSelectedFarmerFile] = useState<File | null>(null);
   const [selectedCashBankFile, setSelectedCashBankFile] = useState<File | null>(null);
+  const [selectedSalesInvoiceFile, setSelectedSalesInvoiceFile] = useState<File | null>(null);
+  const [selectedPurchaseInvoiceFile, setSelectedPurchaseInvoiceFile] = useState<File | null>(null);
 
   // Load all data from localStorage on initial mount
   useEffect(() => {
     const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) setFarmers(JSON.parse(storedFarmers));
+    if (storedFarmers) {
+      const parsedFarmers = JSON.parse(storedFarmers);
+      setFarmers(parsedFarmers);
+      setAllAvailableFarmers(parsedFarmers); // Also set for lookup
+    }
+
+    const storedItems = localStorage.getItem("items");
+    if (storedItems) {
+      setAllAvailableItems(JSON.parse(storedItems)); // Set for lookup
+    }
 
     const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
     if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
@@ -154,6 +174,7 @@ const SyncBackupPage: React.FC = () => {
       }
 
       setFarmers(importedData);
+      setAllAvailableFarmers(importedData); // Update lookup list
       localStorage.setItem("farmers", JSON.stringify(importedData));
       showSuccess("Farmers imported and saved successfully!");
       setSelectedFarmerFile(null);
@@ -304,6 +325,92 @@ const SyncBackupPage: React.FC = () => {
   };
 
   // --- Sales Invoice Handlers ---
+  const handleSalesInvoiceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedSalesInvoiceFile(event.target.files[0]);
+    } else {
+      setSelectedSalesInvoiceFile(null);
+    }
+  };
+
+  const handleImportSalesInvoices = async () => {
+    if (!selectedSalesInvoiceFile) {
+      showError("Please select an Excel file to import sales invoices.");
+      return;
+    }
+
+    const importedRawData = await importFromExcel<any>(selectedSalesInvoiceFile);
+    if (!importedRawData) return;
+
+    const newSalesInvoices: CompleteSalesInvoice[] = [];
+    const invoiceMap = new Map<string, CompleteSalesInvoice>();
+
+    for (const row of importedRawData) {
+      const invoiceNo = row.invoiceNo;
+      if (!invoiceNo) {
+        showError("Each row must have an 'invoiceNo'. Skipping row.");
+        continue;
+      }
+
+      let invoice = invoiceMap.get(invoiceNo);
+      if (!invoice) {
+        const farmerId = row.farmerId;
+        const farmer = allAvailableFarmers.find(f => f.id === farmerId);
+        if (!farmer) {
+          showError(`Farmer with ID '${farmerId}' not found for invoice '${invoiceNo}'. Please import farmers first.`);
+          continue; // Skip this invoice if farmer not found
+        }
+
+        invoice = {
+          id: invoiceNo, // Using invoiceNo as ID for simplicity
+          invoiceNo: invoiceNo,
+          invoiceDate: row.invoiceDate || new Date().toLocaleDateString('en-CA'),
+          invoiceTime: row.invoiceTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          farmer: farmer,
+          items: [],
+          totalAmount: 0, // Will be calculated
+          advance: Number(row.advance) || 0,
+          due: 0, // Will be calculated
+        };
+        invoiceMap.set(invoiceNo, invoice);
+        newSalesInvoices.push(invoice);
+      }
+
+      // Add item to invoice
+      const selectedItemId = row.selectedItemId;
+      const itemDetails = allAvailableItems.find(i => i.id === selectedItemId);
+      if (!itemDetails) {
+        showError(`Item with ID '${selectedItemId}' not found for invoice '${invoiceNo}'. Skipping item.`);
+        continue;
+      }
+
+      const weight = Number(row.weight) || 0;
+      const rate = Number(row.rate) || itemDetails.ratePerKg; // Use imported rate or default
+      const amount = weight * rate;
+
+      const salesItem: SalesItem = {
+        uniqueId: `sales-item-${invoiceNo}-${invoice.items.length + 1}`,
+        selectedItemId: selectedItemId,
+        itemName: row.itemName || itemDetails.itemName,
+        weight: weight,
+        rate: rate,
+        amount: amount,
+      };
+      invoice.items.push(salesItem);
+      invoice.totalAmount += amount;
+    }
+
+    // Finalize due amounts
+    newSalesInvoices.forEach(invoice => {
+      invoice.due = invoice.totalAmount - invoice.advance;
+    });
+
+    setSalesInvoices(prev => [...prev, ...newSalesInvoices]);
+    localStorage.setItem("salesInvoices", JSON.stringify([...salesInvoices, ...newSalesInvoices]));
+    showSuccess("Sales Invoices imported and saved successfully!");
+    setSelectedSalesInvoiceFile(null);
+  };
+
   const handleExportSalesInvoicesToExcel = () => {
     if (salesInvoices.length === 0) {
       showError("No sales invoices to export.");
@@ -313,19 +420,19 @@ const SyncBackupPage: React.FC = () => {
     // Flatten sales invoices for Excel export
     const flattenedSalesData = salesInvoices.flatMap(invoice =>
       invoice.items.map(item => ({
-        invoiceId: invoice.id,
         invoiceNo: invoice.invoiceNo,
         invoiceDate: invoice.invoiceDate,
         invoiceTime: invoice.invoiceTime,
         farmerId: invoice.farmer.id,
         farmerName: invoice.farmer.farmerName,
+        selectedItemId: item.selectedItemId,
         itemName: item.itemName,
-        itemWeight: item.weight,
-        itemRate: item.rate,
-        itemAmount: item.amount,
-        totalInvoiceAmount: invoice.totalAmount,
-        advancePaid: invoice.advance,
-        dueAmount: invoice.due,
+        weight: item.weight,
+        rate: item.rate,
+        amount: item.amount,
+        totalAmount: invoice.totalAmount,
+        advance: invoice.advance,
+        due: invoice.due,
       }))
     );
     exportToExcel(flattenedSalesData, "Sales_Invoices_Data", "SalesInvoices");
@@ -384,6 +491,101 @@ const SyncBackupPage: React.FC = () => {
   };
 
   // --- Purchase Invoice Handlers ---
+  const handlePurchaseInvoiceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedPurchaseInvoiceFile(event.target.files[0]);
+    } else {
+      setSelectedPurchaseInvoiceFile(null);
+    }
+  };
+
+  const handleImportPurchaseInvoices = async () => {
+    if (!selectedPurchaseInvoiceFile) {
+      showError("Please select an Excel file to import purchase invoices.");
+      return;
+    }
+
+    const importedRawData = await importFromExcel<any>(selectedPurchaseInvoiceFile);
+    if (!importedRawData) return;
+
+    const newPurchaseInvoices: CompletePurchaseInvoice[] = [];
+    const invoiceMap = new Map<string, CompletePurchaseInvoice>();
+
+    for (const row of importedRawData) {
+      const purchaseNo = row.purchaseNo;
+      if (!purchaseNo) {
+        showError("Each row must have a 'purchaseNo'. Skipping row.");
+        continue;
+      }
+
+      let invoice = invoiceMap.get(purchaseNo);
+      if (!invoice) {
+        const farmerId = row.farmerId;
+        const farmer = allAvailableFarmers.find(f => f.id === farmerId);
+        if (!farmer) {
+          showError(`Farmer with ID '${farmerId}' not found for purchase invoice '${purchaseNo}'. Please import farmers first.`);
+          continue; // Skip this invoice if farmer not found
+        }
+
+        invoice = {
+          id: purchaseNo, // Using purchaseNo as ID for simplicity
+          purchaseNo: purchaseNo,
+          purchaseDate: row.purchaseDate || new Date().toLocaleDateString('en-CA'),
+          purchaseTime: row.purchaseTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          farmer: farmer,
+          items: [],
+          totalAmount: 0, // Will be calculated
+          advance: Number(row.advance) || 0,
+          due: 0, // Will be calculated
+        };
+        invoiceMap.set(purchaseNo, invoice);
+        newPurchaseInvoices.push(invoice);
+      }
+
+      // Add item to invoice
+      const selectedItemId = row.selectedItemId;
+      const itemDetails = allAvailableItems.find(i => i.id === selectedItemId);
+      if (!itemDetails) {
+        showError(`Item with ID '${selectedItemId}' not found for purchase invoice '${purchaseNo}'. Skipping item.`);
+        continue;
+      }
+
+      const grossWeight = Number(row.grossWeight) || 0;
+      const tareWeight = Number(row.tareWeight) || 0;
+      const mudDeduction = Number(row.mudDeduction) || 0;
+      const rate = Number(row.rate) || itemDetails.ratePerKg; // Use imported rate or default
+
+      const netWeight = grossWeight - tareWeight;
+      const finalWeight = netWeight - (netWeight * mudDeduction / 100);
+      const amount = finalWeight * rate;
+
+      const purchaseItem: PurchaseItem = {
+        uniqueId: `purchase-item-${purchaseNo}-${invoice.items.length + 1}`,
+        selectedItemId: selectedItemId,
+        itemName: row.itemName || itemDetails.itemName,
+        grossWeight: grossWeight,
+        tareWeight: tareWeight,
+        mudDeduction: mudDeduction,
+        rate: rate,
+        netWeight: netWeight,
+        finalWeight: finalWeight,
+        amount: amount,
+      };
+      invoice.items.push(purchaseItem);
+      invoice.totalAmount += amount;
+    }
+
+    // Finalize due amounts
+    newPurchaseInvoices.forEach(invoice => {
+      invoice.due = invoice.totalAmount - invoice.advance;
+    });
+
+    setPurchaseInvoices(prev => [...prev, ...newPurchaseInvoices]);
+    localStorage.setItem("purchaseInvoices", JSON.stringify([...purchaseInvoices, ...newPurchaseInvoices]));
+    showSuccess("Purchase Invoices imported and saved successfully!");
+    setSelectedPurchaseInvoiceFile(null);
+  };
+
   const handleExportPurchaseInvoicesToExcel = () => {
     if (purchaseInvoices.length === 0) {
       showError("No purchase invoices to export.");
@@ -393,23 +595,23 @@ const SyncBackupPage: React.FC = () => {
     // Flatten purchase invoices for Excel export
     const flattenedPurchaseData = purchaseInvoices.flatMap(invoice =>
       invoice.items.map(item => ({
-        purchaseId: invoice.id,
         purchaseNo: invoice.purchaseNo,
         purchaseDate: invoice.purchaseDate,
         purchaseTime: invoice.purchaseTime,
         farmerId: invoice.farmer.id,
         farmerName: invoice.farmer.farmerName,
+        selectedItemId: item.selectedItemId,
         itemName: item.itemName,
-        itemGrossWeight: item.grossWeight,
-        itemTareWeight: item.tareWeight,
-        itemMudDeduction: item.mudDeduction,
-        itemNetWeight: item.netWeight,
-        itemFinalWeight: item.finalWeight,
-        itemRate: item.rate,
-        itemAmount: item.amount,
-        totalPurchaseAmount: invoice.totalAmount,
-        advancePaid: invoice.advance,
-        dueAmount: invoice.due,
+        grossWeight: item.grossWeight,
+        tareWeight: item.tareWeight,
+        mudDeduction: item.mudDeduction,
+        netWeight: item.netWeight,
+        finalWeight: item.finalWeight,
+        rate: item.rate,
+        amount: item.amount,
+        totalAmount: invoice.totalAmount,
+        advance: invoice.advance,
+        due: invoice.due,
       }))
     );
     exportToExcel(flattenedPurchaseData, "Purchase_Invoices_Data", "PurchaseInvoices");
@@ -616,18 +818,58 @@ const SyncBackupPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Sales & Purchase Invoices Import (Disabled with explanation) */}
+              {/* Sales Invoices Import */}
               <div>
-                <h3 className="font-medium mb-2">Sales & Purchase Invoices:</h3>
+                <h3 className="font-medium mb-2">Sales Invoices:</h3>
                 <div className="flex items-center space-x-2">
-                  <Input type="file" accept=".xlsx, .xls" disabled className="flex-1" />
-                  <Button disabled>
-                    <Upload className="mr-2 h-4 w-4" /> Import Invoices
+                  <Input type="file" accept=".xlsx, .xls" onChange={handleSalesInvoiceFileChange} className="flex-1" />
+                  <Button onClick={handleImportSalesInvoices} disabled={!selectedSalesInvoiceFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Sales Invoices
                   </Button>
                 </div>
-                <p className="text-sm text-red-500 mt-2">
-                  Importing Sales and Purchase Invoices with nested item details from a simple Excel file is not supported client-side due to data complexity. For this feature, a backend database is recommended.
-                </p>
+                {selectedSalesInvoiceFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedSalesInvoiceFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Sales Invoices (one row per item):</p>
+                        <p><code>invoiceNo</code> (string, e.g., S-YYYYMMDD-001), <code>invoiceDate</code> (YYYY-MM-DD), <code>invoiceTime</code> (HH:MM AM/PM), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>selectedItemId</code> (e.g., I001), <code>itemName</code>, <code>weight</code> (number), <code>rate</code> (number), <code>amount</code> (number), <code>totalAmount</code> (number), <code>advance</code> (number), <code>due</code> (number)</p>
+                        <p className="mt-1"><code>farmerId</code> and <code>selectedItemId</code> must exist in your current Farmers and Items data. <code>invoiceNo</code> is crucial for grouping items into one invoice.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
+              </div>
+
+              {/* Purchase Invoices Import */}
+              <div>
+                <h3 className="font-medium mb-2">Purchase Invoices:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" onChange={handlePurchaseInvoiceFileChange} className="flex-1" />
+                  <Button onClick={handleImportPurchaseInvoices} disabled={!selectedPurchaseInvoiceFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Purchase Invoices
+                  </Button>
+                </div>
+                {selectedPurchaseInvoiceFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedPurchaseInvoiceFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Purchase Invoices (one row per item):</p>
+                        <p><code>purchaseNo</code> (string, e.g., P-YYYYMMDD-001), <code>purchaseDate</code> (YYYY-MM-DD), <code>purchaseTime</code> (HH:MM AM/PM), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>selectedItemId</code> (e.g., I001), <code>itemName</code>, <code>grossWeight</code> (number), <code>tareWeight</code> (number), <code>mudDeduction</code> (number, 0-100), <code>netWeight</code> (number), <code>finalWeight</code> (number), <code>rate</code> (number), <code>amount</code> (number), <code>totalAmount</code> (number), <code>advance</code> (number), <code>due</code> (number)</p>
+                        <p className="mt-1"><code>farmerId</code> and <code>selectedItemId</code> must exist in your current Farmers and Items data. <code>purchaseNo</code> is crucial for grouping items into one invoice.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
               </div>
             </div>
           </CardContent>
