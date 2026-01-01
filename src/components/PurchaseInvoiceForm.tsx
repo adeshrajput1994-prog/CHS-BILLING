@@ -11,27 +11,10 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem,} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger,} from "@/components/ui/dialog";
 import FarmersForm from "./FarmersForm"; // Import FarmersForm
 import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
@@ -92,7 +75,8 @@ const purchaseInvoiceSchema = z.object({
 type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
 
 // Define a type for the complete Purchase Invoice
-export interface CompletePurchaseInvoice { // Exported for use in parent components
+export interface CompletePurchaseInvoice {
+  // Exported for use in parent components
   id: string;
   purchaseNo: string;
   purchaseDate: string;
@@ -123,16 +107,17 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 }) => {
   const { selectedCompany } = useCompany(); // Use company context
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  
+
   // Fetch data using useFirestore
   const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers');
   const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items');
 
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
-    initialData?.items ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1
+    initialData?.items
+      ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1
+      : 1
   );
-
   const [openFarmerSelect, setOpenFarmerSelect] = useState(false);
   const [isAddFarmerDialogOpen, setIsAddFarmerDialogOpen] = useState(false);
 
@@ -148,13 +133,15 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 
   const purchaseForm = useForm<PurchaseInvoiceFormValues>({
     resolver: zodResolver(purchaseInvoiceSchema),
-    defaultValues: initialData ? {
-      selectedFarmerId: initialData.farmer.id,
-      advance: initialData.advance,
-    } : {
-      selectedFarmerId: undefined,
-      advance: 0,
-    },
+    defaultValues: initialData
+      ? {
+        selectedFarmerId: initialData.farmer.id,
+        advance: initialData.advance,
+      }
+      : {
+        selectedFarmerId: undefined,
+        advance: 0,
+      },
   });
 
   const selectedFarmerId = purchaseForm.watch("selectedFarmerId");
@@ -185,9 +172,13 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
       });
       setNextUniqueItemId(1);
     }
-    itemForm.reset({ selectedItemId: undefined, grossWeight: 0, tareWeight: 0, mudDeduction: 0 });
+    itemForm.reset({
+      selectedItemId: undefined,
+      grossWeight: 0,
+      tareWeight: 0,
+      mudDeduction: 0,
+    });
   }, [initialData, purchaseForm, itemForm]);
-
 
   const handleAddItem = (data: PurchaseInvoiceItemFormValues) => {
     try {
@@ -212,13 +203,19 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         amount: amount,
         ...data,
       };
+
       setPurchaseItems((prevItems) => {
         const updatedItems = [...prevItems, newItem];
         console.log("PurchaseForm: Updated purchase items:", updatedItems);
         return updatedItems;
       });
       setNextUniqueItemId((prevId) => prevId + 1);
-      itemForm.reset({ selectedItemId: undefined, grossWeight: 0, tareWeight: 0, mudDeduction: 0 }); // Reset item form
+      itemForm.reset({
+        selectedItemId: undefined,
+        grossWeight: 0,
+        tareWeight: 0,
+        mudDeduction: 0,
+      }); // Reset item form
       showSuccess("Item added to invoice!");
     } catch (error) {
       console.error("PurchaseForm: Error in handleAddItem:", error);
@@ -261,6 +258,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         console.error("PurchaseForm: No farmer selected.");
         return;
       }
+
       if (purchaseItems.length === 0) {
         showError("Please add at least one item to the invoice.");
         console.error("PurchaseForm: No items added to invoice.");
@@ -326,20 +324,21 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
       return;
     }
 
-    const message = `*Purchase Invoice Details*\n\n` +
-                    `*Purchase No:* ${currentPurchaseNo}\n` +
-                    `*Date:* ${currentPurchaseDate}\n` +
-                    `*Time:* ${currentPurchaseTime}\n` +
-                    `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
-                    `*Village:* ${selectedFarmer.village}\n\n` +
-                    `*Items:*\n` +
-                    purchaseItems.map((item, index) =>
-                      `${index + 1}. ${item.itemName} - ${item.finalWeight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
-                    ).join('\n') +
-                    `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
-                    `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
-                    `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
-                    `Thank you for your business!`;
+    const message =
+      `*Purchase Invoice Details*\n\n` +
+      `*Purchase No:* ${currentPurchaseNo}\n` +
+      `*Date:* ${currentPurchaseDate}\n` +
+      `*Time:* ${currentPurchaseTime}\n` +
+      `*Farmer:* ${selectedFarmer.farmerName} (ID: ${selectedFarmer.id})\n` +
+      `*Village:* ${selectedFarmer.village}\n\n` +
+      `*Items:*\n` +
+      purchaseItems.map((item, index) =>
+        `${index + 1}. ${item.itemName} - ${item.finalWeight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+      ).join('\n') +
+      `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
+      `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
+      `*Due Amount:* ₹${dueAmount.toFixed(2)}\n\n` +
+      `Thank you for your business!`;
 
     const whatsappUrl = `https://wa.me/${selectedFarmer.mobileNo}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -349,6 +348,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     const newId = getNextFarmerId(allFarmers); // Still use local ID generator for consistency
     const farmerWithId = { ...newFarmerData, id: newId };
     const addedDocId = await addFarmerDocument(farmerWithId); // Add to Firestore
+
     if (addedDocId) {
       purchaseForm.setValue("selectedFarmerId", newId, { shouldValidate: true }); // Select the newly added farmer
       setIsAddFarmerDialogOpen(false); // Close the dialog
@@ -422,9 +422,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                         aria-expanded={openFarmerSelect}
                         className="w-full justify-between"
                       >
-                        {selectedFarmer
-                          ? selectedFarmer.farmerName
-                          : t("Select farmer...", "किसान चुनें...")}
+                        {selectedFarmer ? selectedFarmer.farmerName : t("Select farmer...", "किसान चुनें...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -455,6 +453,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                       </Command>
                     </PopoverContent>
                   </Popover>
+
                   <Dialog open={isAddFarmerDialogOpen} onOpenChange={setIsAddFarmerDialogOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="shrink-0">
@@ -477,6 +476,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                   <p className="text-red-500 text-sm col-span-2 text-right print-hide">{purchaseForm.formState.errors.selectedFarmerId.message}</p>
                 )}
               </div>
+
               {selectedFarmer ? (
                 <>
                   <div className="space-y-2">
@@ -584,6 +584,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                   <Input id="ratePerKgDisplay" value={currentItemRate.toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="grossWeight">{t("GROSS WEIGHT (KG)", "सकल वजन (KG)")}</Label>
@@ -683,13 +684,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
             </div>
             <div className="space-y-2 print-hide">
               <Label htmlFor="advance">{t("ADVANCE", "अग्रिम")}</Label>
-              <Input
-                id="advance"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...purchaseForm.register("advance")}
-              />
+              <Input id="advance" type="number" step="0.01" placeholder="0.00" {...purchaseForm.register("advance")} />
               {purchaseForm.formState.errors.advance && (
                 <p className="text-red-500 text-sm">{purchaseForm.formState.errors.advance.message}</p>
               )}
