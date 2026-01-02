@@ -34,14 +34,14 @@ export const calculateFarmerDueBalances = (
     salesInvoices
       .filter(invoice => invoice.farmer.id === farmer.id)
       .forEach(invoice => {
-        totalDue += (invoice.totalAmount - invoice.advance); // Sales increase what farmer owes you
+        totalDue += (Number(invoice.totalAmount) - Number(invoice.advance)); // Sales increase what farmer owes you
       });
 
     // Calculate from Purchase Invoices
     purchaseInvoices
       .filter(invoice => invoice.farmer.id === farmer.id)
       .forEach(invoice => {
-        totalDue -= (invoice.totalAmount - invoice.advance); // Purchases increase what you owe farmer
+        totalDue -= (Number(invoice.totalAmount) - Number(invoice.advance)); // Purchases increase what you owe farmer
       });
 
     // Calculate from Cash/Bank Transactions
@@ -49,9 +49,9 @@ export const calculateFarmerDueBalances = (
       .filter(transaction => transaction.farmerId === farmer.id)
       .forEach(transaction => {
         if (transaction.type === "Payment In") {
-          totalDue -= transaction.amount; // Farmer paid you, so their due decreases
+          totalDue -= Number(transaction.amount); // Farmer paid you, so their due decreases
         } else { // Payment Out
-          totalDue += transaction.amount; // You paid farmer, so their due increases (or your debt to them decreases)
+          totalDue += Number(transaction.amount); // You paid farmer, so their due increases (or your debt to them decreases)
         }
       });
 

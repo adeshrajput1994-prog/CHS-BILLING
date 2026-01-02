@@ -67,8 +67,8 @@ const ConsolidatedTransactionReport: React.FC = () => {
         type: "Sale",
         reference: invoice.invoiceNo,
         farmerName: invoice.farmer.farmerName,
-        amount: invoice.totalAmount,
-        details: invoice.items.map(item => `${item.itemName} (${item.weight.toFixed(2)} KG)`).join(', '),
+        amount: Number(invoice.totalAmount),
+        details: invoice.items.map(item => `${item.itemName} (${Number(item.weight).toFixed(2)} KG)`).join(', '),
       });
     });
 
@@ -79,8 +79,8 @@ const ConsolidatedTransactionReport: React.FC = () => {
         type: "Purchase",
         reference: invoice.purchaseNo,
         farmerName: invoice.farmer.farmerName,
-        amount: invoice.totalAmount,
-        details: invoice.items.map(item => `${item.itemName} (${item.finalWeight.toFixed(2)} KG)`).join(', '),
+        amount: Number(invoice.totalAmount),
+        details: invoice.items.map(item => `${item.itemName} (${Number(item.finalWeight).toFixed(2)} KG)`).join(', '),
       });
     });
 
@@ -91,7 +91,7 @@ const ConsolidatedTransactionReport: React.FC = () => {
         type: txn.type,
         reference: txn.id.substring(0, 8),
         farmerName: txn.farmerName,
-        amount: txn.amount,
+        amount: Number(txn.amount),
         method: txn.paymentMethod,
         details: txn.remarks || "-",
       });

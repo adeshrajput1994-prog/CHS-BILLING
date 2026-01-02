@@ -88,7 +88,7 @@ const ManufacturingExpensesForm: React.FC = () => {
   useEffect(() => {
     if (purchaseInvoices.length > 0) {
       const totalFinalWeight = purchaseInvoices.reduce((sum, invoice) => {
-        return sum + invoice.items.reduce((itemSum, item) => itemSum + item.finalWeight, 0);
+        return sum + invoice.items.reduce((itemSum, item) => itemSum + Number(item.finalWeight), 0);
       }, 0);
       setTotalPurchaseItemKg(totalFinalWeight);
       setManufacturedItemKg(totalFinalWeight / 4); // Assuming 1/4th conversion
@@ -100,10 +100,10 @@ const ManufacturingExpensesForm: React.FC = () => {
 
   // Calculations based on the image
   const manufacturedItemStock = manufacturedItemKg; // This is the output of the manufacturing process
-  const plantLabourCost = totalPurchaseItemKg * plantLabourRate;
-  const khakhoraLabourCost = totalPurchaseItemKg * khakhoraLabourRate;
-  const loadingLabourCost = manufacturedItemKg * loadingLabourRate;
-  const freightCost = manufacturedItemKg * freightRate;
+  const plantLabourCost = totalPurchaseItemKg * Number(plantLabourRate);
+  const khakhoraLabourCost = totalPurchaseItemKg * Number(khakhoraLabourRate);
+  const loadingLabourCost = manufacturedItemKg * Number(loadingLabourRate);
+  const freightCost = manufacturedItemKg * Number(freightRate);
 
   const totalManufacturingExpense = plantLabourCost + khakhoraLabourCost + loadingLabourCost + freightCost;
 
@@ -112,10 +112,10 @@ const ManufacturingExpensesForm: React.FC = () => {
       manufacturedItemName: data.manufacturedItemName,
       totalPurchaseItemKg: totalPurchaseItemKg,
       manufacturedItemKg: manufacturedItemKg,
-      plantLabourRate: data.plantLabourRate,
-      khakhoraLabourRate: data.khakhoraLabourRate,
-      loadingLabourRate: data.loadingLabourRate,
-      freightRate: data.freightRate,
+      plantLabourRate: Number(data.plantLabourRate),
+      khakhoraLabourRate: Number(data.khakhoraLabourRate),
+      loadingLabourRate: Number(data.loadingLabourRate),
+      freightRate: Number(data.freightRate),
       manufacturedItemStock: manufacturedItemStock,
       plantLabourCost: plantLabourCost,
       khakhoraLabourCost: khakhoraLabourCost,

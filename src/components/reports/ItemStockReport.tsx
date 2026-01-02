@@ -17,24 +17,15 @@ import { showError } from "@/utils/toast";
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 const ItemStockReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [items, setItems] = useState<GlobalItem[]>([]);
+  // Fetch items data using useFirestore hook
+  const { data: items, loading, error } = useFirestore<GlobalItem>('items');
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  useEffect(() => {
-    const storedItems = localStorage.getItem("items");
-    if (storedItems) {
-      const parsedItems: GlobalItem[] = JSON.parse(storedItems);
-      const processedItems = parsedItems.map(item => ({
-        ...item,
-        ratePerKg: Number(item.ratePerKg),
-        stock: Number(item.stock || 0),
-      }));
-      setItems(processedItems);
-    }
-  }, []);
+  // No need for local state and useEffect to load from localStorage anymore, useFirestore handles it.
 
   const filteredItems = items.filter(item =>
     item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,8 +47,8 @@ const ItemStockReport: React.FC = () => {
     let message = `*Item Stock Report*\n\n`;
     filteredItems.forEach(item => {
       message += `*${item.itemName}* (ID: ${item.id})\n`;
-      message += `Current Stock: ${item.stock.toFixed(2)} KG\n`;
-      message += `Rate: ₹${item.ratePerKg.toFixed(2)}/KG\n\n`;
+      message += `Current Stock: ${Number(item.stock).toFixed(2)} KG\n`;
+      message += `Rate: ₹${Number(item.ratePerKg).toFixed(2)}/KG\n\n`;
     });
     message += `View full report in Vyapar app.`;
 
@@ -66,7 +57,13 @@ const ItemStockReport: React.FC = () => {
   };
 
   const handleExportToExcel = () => {
-    exportToExcel(filteredItems, "Item_Stock_Report", "ItemStock");
+    const exportData = filteredItems.map(item => ({
+      "Item ID": item.id,
+      "Item Name": item.itemName,
+      "Rate per KG (₹)": Number(item.ratePerKg),
+      "Current Stock (KG)": Number(item.stock),
+    }));
+    exportToExcel(exportData, "Item_Stock_Report", "ItemStock");
   };
 
   const handleExportToPdf = () => {
@@ -96,8 +93,8 @@ const ItemStockReport: React.FC = () => {
             <tr>
               <td style="border: 1px solid #ddd; padding: 8px;">${item.id}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${item.itemName}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹ ${item.ratePerKg.toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${item.stock.toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹ ${Number(item.ratePerKg).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${Number(item.stock).toFixed(2)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -112,6 +109,14 @@ const ItemStockReport: React.FC = () => {
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (loading) {
+    return <div className="text-center py-8 text-lg">Loading item stock data...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading item stock data: {error}</div>;
+  }
 
   return (
     <Card>
@@ -164,8 +169,8 @@ const ItemStockReport: React.FC = () => {
                   <TableRow key={item.id}>
                     <TableCell>{item.id}</TableCell>
                     <TableCell>{item.itemName}</TableCell>
-                    <TableCell className="text-right">₹ {item.ratePerKg.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{item.stock.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">₹ {Number(item.ratePerKg).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{Number(item.stock).toFixed(2)}</TableCell>
                   </TableRow>
                 ))
               )}

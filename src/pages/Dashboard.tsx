@@ -70,25 +70,25 @@ const Dashboard = () => {
 
     cashBankTransactions.forEach(txn => {
       if (txn.type === "Payment In") {
-        totalIn += txn.amount;
-        if (txn.date === todayDate) dailyIn += txn.amount;
+        totalIn += Number(txn.amount);
+        if (txn.date === todayDate) dailyIn += Number(txn.amount);
       } else {
-        totalOut += txn.amount;
-        if (txn.date === todayDate) dailyOut += txn.amount;
+        totalOut += Number(txn.amount);
+        if (txn.date === todayDate) dailyOut += Number(txn.amount);
       }
     });
 
     purchaseInvoices.forEach(invoice => {
-      totalPurchasedKg += invoice.items.reduce((sum, item) => sum + item.finalWeight, 0);
-      if (invoice.purchaseDate === todayDate) dailyPurchases += invoice.totalAmount;
+      totalPurchasedKg += invoice.items.reduce((sum, item) => sum + Number(item.finalWeight), 0);
+      if (invoice.purchaseDate === todayDate) dailyPurchases += Number(invoice.totalAmount);
     });
 
     salesInvoices.forEach(invoice => {
-      if (invoice.invoiceDate === todayDate) dailySales += invoice.totalAmount;
+      if (invoice.invoiceDate === todayDate) dailySales += Number(invoice.totalAmount);
     });
 
     manufacturingExpenses.forEach(expense => {
-      totalManufacturedKg += expense.manufacturedItemKg;
+      totalManufacturedKg += Number(expense.manufacturedItemKg);
     });
 
     const farmerBalancesMap = calculateFarmerDueBalances(
@@ -105,7 +105,7 @@ const Dashboard = () => {
 
     // Get top 5 major payments (Payment In or Payment Out)
     const majorPaymentsList = [...cashBankTransactions]
-      .sort((a, b) => b.amount - a.amount)
+      .sort((a, b) => Number(b.amount) - Number(a.amount))
       .slice(0, 5);
 
 
@@ -259,7 +259,7 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground">{txn.type} ({txn.paymentMethod}) - {txn.date}</p>
                   </div>
                   <p className={`font-bold ${txn.type === "Payment In" ? "text-green-600" : "text-red-600"}`}>
-                    ₹ {txn.amount.toFixed(2)}
+                    ₹ {Number(txn.amount).toFixed(2)}
                   </p>
                 </div>
               ))}

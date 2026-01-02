@@ -75,7 +75,7 @@ const CashBankTable: React.FC<CashBankTableProps> = ({ transactions, onEdit, onD
                   </Badge>
                 </TableCell>
                 <TableCell>{transaction.farmerName}</TableCell>
-                <TableCell>₹ {transaction.amount.toFixed(2)}</TableCell>
+                <TableCell>₹ {Number(transaction.amount).toFixed(2)}</TableCell>
                 <TableCell>{t(transaction.paymentMethod, transaction.paymentMethod === "Cash" ? "नकद" : "बैंक")}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{transaction.remarks || "-"}</TableCell>
                 <TableCell className="flex justify-center space-x-2">

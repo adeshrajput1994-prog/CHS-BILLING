@@ -124,7 +124,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     defaultValues: initialData
       ? {
         selectedFarmerId: initialData.farmer.id,
-        advance: initialData.advance,
+        advance: Number(initialData.advance), // Ensure advance is number
       }
       : {
         selectedFarmerId: undefined,
@@ -140,18 +140,23 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
   const selectedItemForAdd = itemForm.watch("selectedItemId");
   const currentItemRate = useMemo(() => {
     const item = allItems.find(i => i.id === selectedItemForAdd);
-    return item ? item.ratePerKg : 0;
+    return item ? Number(item.ratePerKg) : 0;
   }, [selectedItemForAdd, allItems]);
 
   // Reset item form when initialData changes (e.g., switching from add to edit)
   useEffect(() => {
     if (initialData) {
-      setSalesItems(initialData.items);
+      setSalesItems(initialData.items.map(item => ({
+        ...item,
+        weight: Number(item.weight),
+        rate: Number(item.rate),
+        amount: Number(item.amount),
+      })));
       salesForm.reset({
         selectedFarmerId: initialData.farmer.id,
-        advance: initialData.advance,
+        advance: Number(initialData.advance),
       });
-      setNextUniqueItemId(Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1);
+      setNextUniqueItemId(initialData.items.length > 0 ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1);
     } else {
       setSalesItems([]);
       salesForm.reset({
@@ -176,18 +181,19 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         return;
       }
 
-      if (itemDetails.stock < data.weight) {
-        showError(`Insufficient stock for ${itemDetails.itemName}. Available: ${itemDetails.stock.toFixed(2)} KG`);
+      if (Number(itemDetails.stock) < Number(data.weight)) {
+        showError(`Insufficient stock for ${itemDetails.itemName}. Available: ${Number(itemDetails.stock).toFixed(2)} KG`);
         return;
       }
 
-      const amount = data.weight * itemDetails.ratePerKg;
+      const amount = Number(data.weight) * Number(itemDetails.ratePerKg);
       const newItem: SalesItem = {
         uniqueId: `sales-item-${nextUniqueItemId}`,
         itemName: itemDetails.itemName,
-        rate: itemDetails.ratePerKg,
+        rate: Number(itemDetails.ratePerKg),
         amount: amount,
-        ...data,
+        selectedItemId: data.selectedItemId,
+        weight: Number(data.weight),
       };
 
       setSalesItems((prevItems) => {
@@ -216,8 +222,8 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
     showSuccess("Item removed from invoice.");
   };
 
-  const totalAmount = salesItems.reduce((sum, item) => sum + item.amount, 0);
-  const advanceAmount = salesForm.watch("advance");
+  const totalAmount = salesItems.reduce((sum, item) => sum + Number(item.amount), 0);
+  const advanceAmount = Number(salesForm.watch("advance"));
   const dueAmount = totalAmount - advanceAmount;
 
   const updateItemStock = async (itemsToUpdate: SalesItem[], type: 'deduct' | 'add') => {
@@ -256,7 +262,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         invoiceTime: currentInvoiceTime,
         farmer: selectedFarmer,
         items: salesItems,
-        totalAmount,
+        totalAmount: totalAmount,
         advance: advanceAmount,
         due: dueAmount,
       };
@@ -317,7 +323,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
       `*Village:* ${selectedFarmer.village}\n\n` +
       `*Items:*\n` +
       salesItems.map((item, index) =>
-        `${index + 1}. ${item.itemName} - ${item.weight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+        `${index + 1}. ${item.itemName} - ${Number(item.weight).toFixed(2)} KG @ ₹${Number(item.rate).toFixed(2)}/KG = ₹${Number(item.amount).toFixed(2)}`
       ).join('\n') +
       `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
       `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
@@ -538,7 +544,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                                   selectedItemForAdd === item.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG, Stock: {item.stock.toFixed(2)} KG)
+                              {item.itemName} (₹{Number(item.ratePerKg).toFixed(2)}/KG, Stock: {Number(item.stock).toFixed(2)} KG)
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -562,7 +568,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amountDisplay">{t("AMOUNT", "राशि")}</Label>
-                  <Input id="amountDisplay" value={(itemForm.watch("weight") * currentItemRate).toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <Input id="amountDisplay" value={(Number(itemForm.watch("weight")) * currentItemRate).toFixed(2)} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                 </div>
               </div>
               <Button type="button" onClick={itemForm.handleSubmit(handleAddItem, onErrorItemForm)} className="w-full">
@@ -603,9 +609,9 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                       <TableRow key={item.uniqueId}>
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>{item.itemName}</TableCell>
-                        <TableCell>{item.weight.toFixed(2)} KG</TableCell>
-                        <TableCell>₹ {item.rate.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">₹ {item.amount.toFixed(2)}</TableCell>
+                        <TableCell>{Number(item.weight).toFixed(2)} KG</TableCell>
+                        <TableCell>₹ {Number(item.rate).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">₹ {Number(item.amount).toFixed(2)}</TableCell>
                         <TableCell className="text-center print-hide">
                           <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.uniqueId)}>
                             <Trash2 className="h-4 w-4 text-red-600" />

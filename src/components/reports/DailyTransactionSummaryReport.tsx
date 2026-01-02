@@ -54,10 +54,10 @@ const DailyTransactionSummaryReport: React.FC = () => {
     return cashBankTransactions.filter(txn => txn.date === formattedDate);
   }, [cashBankTransactions, formattedDate]);
 
-  const totalSalesAmount = dailySales.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalPurchaseAmount = dailyPurchases.reduce((sum, inv) => sum + inv.totalAmount, 0);
-  const totalCashIn = dailyCashBank.filter(txn => txn.type === "Payment In").reduce((sum, txn) => sum + txn.amount, 0);
-  const totalCashOut = dailyCashBank.filter(txn => txn.type === "Payment Out").reduce((sum, txn) => sum + txn.amount, 0);
+  const totalSalesAmount = dailySales.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+  const totalPurchaseAmount = dailyPurchases.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+  const totalCashIn = dailyCashBank.filter(txn => txn.type === "Payment In").reduce((sum, txn) => sum + Number(txn.amount), 0);
+  const totalCashOut = dailyCashBank.filter(txn => txn.type === "Payment Out").reduce((sum, txn) => sum + Number(txn.amount), 0);
   const netCashFlow = totalCashIn - totalCashOut;
 
   const handlePrint = () => {
@@ -164,7 +164,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                         <TableRow key={invoice.id}>
                           <TableCell>{invoice.invoiceNo}</TableCell>
                           <TableCell>{invoice.farmer.farmerName}</TableCell>
-                          <TableCell className="text-right">₹ {invoice.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹ {Number(invoice.totalAmount).toFixed(2)}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -201,7 +201,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                         <TableRow key={invoice.id}>
                           <TableCell>{invoice.purchaseNo}</TableCell>
                           <TableCell>{invoice.farmer.farmerName}</TableCell>
-                          <TableCell className="text-right">₹ {invoice.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹ {Number(invoice.totalAmount).toFixed(2)}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -240,7 +240,7 @@ const DailyTransactionSummaryReport: React.FC = () => {
                           <TableCell>{t(txn.type, txn.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</TableCell>
                           <TableCell>{txn.farmerName}</TableCell>
                           <TableCell>{t(txn.paymentMethod, txn.paymentMethod === "Cash" ? "नकद" : "बैंक")}</TableCell>
-                          <TableCell className="text-right">₹ {txn.amount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">₹ {Number(txn.amount).toFixed(2)}</TableCell>
                         </TableRow>
                       ))
                     )}

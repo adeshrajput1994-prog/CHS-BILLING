@@ -94,8 +94,8 @@ const FarmerStatementReport: React.FC = () => {
           date: invoice.invoiceDate,
           time: invoice.invoiceTime,
           type: "Sale",
-          description: `Sale Invoice ${invoice.invoiceNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
-          debit: invoice.totalAmount - invoice.advance,
+          description: `Sale Invoice ${invoice.invoiceNo} (Total: ₹${Number(invoice.totalAmount).toFixed(2)}, Advance: ₹${Number(invoice.advance).toFixed(2)})`,
+          debit: Number(invoice.totalAmount) - Number(invoice.advance),
           credit: 0,
           balance: 0, // Will be calculated later
         });
@@ -108,9 +108,9 @@ const FarmerStatementReport: React.FC = () => {
           date: invoice.purchaseDate,
           time: invoice.purchaseTime,
           type: "Purchase",
-          description: `Purchase Invoice ${invoice.purchaseNo} (Total: ₹${invoice.totalAmount.toFixed(2)}, Advance: ₹${invoice.advance.toFixed(2)})`,
+          description: `Purchase Invoice ${invoice.purchaseNo} (Total: ₹${Number(invoice.totalAmount).toFixed(2)}, Advance: ₹${Number(invoice.advance).toFixed(2)})`,
           debit: 0,
-          credit: invoice.totalAmount - invoice.advance,
+          credit: Number(invoice.totalAmount) - Number(invoice.advance),
           balance: 0, // Will be calculated later
         });
       });
@@ -123,8 +123,8 @@ const FarmerStatementReport: React.FC = () => {
           time: txn.time,
           type: txn.type,
           description: `${txn.type} (${txn.paymentMethod}) ${txn.remarks ? `- ${txn.remarks}` : ''}`,
-          debit: txn.type === "Payment Out" ? txn.amount : 0,
-          credit: txn.type === "Payment In" ? txn.amount : 0,
+          debit: txn.type === "Payment Out" ? Number(txn.amount) : 0,
+          credit: txn.type === "Payment In" ? Number(txn.amount) : 0,
           balance: 0, // Will be calculated later
         });
       });

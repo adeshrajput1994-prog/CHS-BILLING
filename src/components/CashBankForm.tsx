@@ -83,7 +83,10 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
   // Reset form fields when initialData changes (e.g., switching from add to edit, or clearing edit)
   useEffect(() => {
     if (initialData) {
-      reset(initialData);
+      reset({
+        ...initialData,
+        amount: Number(initialData.amount), // Ensure amount is number
+      });
     } else {
       reset({
         transactionType: "Payment In",
@@ -129,7 +132,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       type: data.transactionType,
       farmerId: data.farmerId,
       farmerName: selectedFarmer.farmerName,
-      amount: data.amount,
+      amount: Number(data.amount), // Ensure amount is number
       paymentMethod: data.paymentMethod,
       remarks: data.remarks,
       date: initialData?.date || new Date().toLocaleDateString('en-CA'), // Keep original date/time if editing
@@ -155,7 +158,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
     const transactionData = initialData || form.getValues(); // Use initialData if editing, otherwise current form values
     const farmerName = selectedFarmer.farmerName;
     const transactionType = transactionData.transactionType;
-    const amount = transactionData.amount;
+    const amount = Number(transactionData.amount); // Ensure amount is number
     const paymentMethod = transactionData.paymentMethod;
     const remarks = transactionData.remarks || "N/A";
     const date = initialData?.date || new Date().toLocaleDateString('en-GB');

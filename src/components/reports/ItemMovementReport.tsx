@@ -55,7 +55,7 @@ const ItemMovementReport: React.FC = () => {
         totalSalesKg: 0,
         totalPurchasesKg: 0,
         netMovementKg: 0,
-        closingStockKg: item.stock, // Start with current stock
+        closingStockKg: Number(item.stock), // Start with current stock
       });
     });
 
@@ -71,7 +71,7 @@ const ItemMovementReport: React.FC = () => {
       invoice.items.forEach(saleItem => {
         const summary = summaryMap.get(saleItem.selectedItemId);
         if (summary) {
-          summary.totalSalesKg += saleItem.weight;
+          summary.totalSalesKg += Number(saleItem.weight);
         }
       });
     });
@@ -80,7 +80,7 @@ const ItemMovementReport: React.FC = () => {
       invoice.items.forEach(purchaseItem => {
         const summary = summaryMap.get(purchaseItem.selectedItemId);
         if (summary) {
-          summary.totalPurchasesKg += purchaseItem.finalWeight;
+          summary.totalPurchasesKg += Number(purchaseItem.finalWeight);
         }
       });
     });

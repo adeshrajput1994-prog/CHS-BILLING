@@ -136,7 +136,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     defaultValues: initialData
       ? {
         selectedFarmerId: initialData.farmer.id,
-        advance: initialData.advance,
+        advance: Number(initialData.advance), // Ensure advance is number
       }
       : {
         selectedFarmerId: undefined,
@@ -152,18 +152,27 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   const selectedItemForAdd = itemForm.watch("selectedItemId");
   const currentItemRate = useMemo(() => {
     const item = allItems.find(i => i.id === selectedItemForAdd);
-    return item ? item.ratePerKg : 0;
+    return item ? Number(item.ratePerKg) : 0;
   }, [selectedItemForAdd, allItems]);
 
   // Reset item form when initialData changes (e.g., switching from add to edit)
   useEffect(() => {
     if (initialData) {
-      setPurchaseItems(initialData.items);
+      setPurchaseItems(initialData.items.map(item => ({
+        ...item,
+        grossWeight: Number(item.grossWeight),
+        tareWeight: Number(item.tareWeight),
+        mudDeduction: Number(item.mudDeduction),
+        rate: Number(item.rate),
+        netWeight: Number(item.netWeight),
+        finalWeight: Number(item.finalWeight),
+        amount: Number(item.amount),
+      })));
       purchaseForm.reset({
         selectedFarmerId: initialData.farmer.id,
-        advance: initialData.advance,
+        advance: Number(initialData.advance),
       });
-      setNextUniqueItemId(Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1);
+      setNextUniqueItemId(initialData.items.length > 0 ? Math.max(...initialData.items.map(item => parseInt(item.uniqueId.split('-')[2]))) + 1 : 1);
     } else {
       setPurchaseItems([]);
       purchaseForm.reset({
@@ -190,18 +199,21 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         return;
       }
 
-      const netWeight = data.grossWeight - data.tareWeight;
-      const finalWeight = netWeight - (netWeight * data.mudDeduction / 100);
-      const amount = finalWeight * itemDetails.ratePerKg;
+      const netWeight = Number(data.grossWeight) - Number(data.tareWeight);
+      const finalWeight = netWeight - (netWeight * Number(data.mudDeduction) / 100);
+      const amount = finalWeight * Number(itemDetails.ratePerKg);
 
       const newItem: PurchaseItem = {
         uniqueId: `purchase-item-${nextUniqueItemId}`,
         itemName: itemDetails.itemName,
-        rate: itemDetails.ratePerKg,
+        rate: Number(itemDetails.ratePerKg),
         netWeight: netWeight,
         finalWeight: finalWeight,
         amount: amount,
-        ...data,
+        selectedItemId: data.selectedItemId,
+        grossWeight: Number(data.grossWeight),
+        tareWeight: Number(data.tareWeight),
+        mudDeduction: Number(data.mudDeduction),
       };
 
       setPurchaseItems((prevItems) => {
@@ -232,8 +244,8 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
     showSuccess("Item removed from invoice.");
   };
 
-  const totalAmount = purchaseItems.reduce((sum, item) => sum + item.amount, 0);
-  const advanceAmount = purchaseForm.watch("advance");
+  const totalAmount = purchaseItems.reduce((sum, item) => sum + Number(item.amount), 0);
+  const advanceAmount = Number(purchaseForm.watch("advance"));
   const dueAmount = totalAmount - advanceAmount;
 
   const updateItemStock = async (itemsToUpdate: PurchaseItem[], type: 'add' | 'deduct') => {
@@ -272,7 +284,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         purchaseTime: currentPurchaseTime,
         farmer: selectedFarmer,
         items: purchaseItems,
-        totalAmount,
+        totalAmount: totalAmount,
         advance: advanceAmount,
         due: dueAmount,
       };
@@ -333,7 +345,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
       `*Village:* ${selectedFarmer.village}\n\n` +
       `*Items:*\n` +
       purchaseItems.map((item, index) =>
-        `${index + 1}. ${item.itemName} - ${item.finalWeight.toFixed(2)} KG @ ₹${item.rate.toFixed(2)}/KG = ₹${item.amount.toFixed(2)}`
+        `${index + 1}. ${item.itemName} - ${Number(item.finalWeight).toFixed(2)} KG @ ₹${Number(item.rate).toFixed(2)}/KG = ₹${Number(item.amount).toFixed(2)}`
       ).join('\n') +
       `\n\n*Total Amount:* ₹${totalAmount.toFixed(2)}\n` +
       `*Advance Paid:* ₹${advanceAmount.toFixed(2)}\n` +
@@ -568,7 +580,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                                   selectedItemForAdd === item.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {item.itemName} (₹{item.ratePerKg.toFixed(2)}/KG, Stock: {item.stock.toFixed(2)} KG)
+                              {item.itemName} (₹{Number(item.ratePerKg).toFixed(2)}/KG, Stock: {Number(item.stock).toFixed(2)} KG)
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -650,13 +662,13 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                       <TableRow key={item.uniqueId}>
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>{item.itemName}</TableCell>
-                        <TableCell>{item.grossWeight.toFixed(2)} KG</TableCell>
-                        <TableCell>{item.tareWeight.toFixed(2)} KG</TableCell>
-                        <TableCell>{item.netWeight.toFixed(2)} KG</TableCell>
-                        <TableCell>{item.mudDeduction.toFixed(2)} %</TableCell>
-                        <TableCell>{item.finalWeight.toFixed(2)} KG</TableCell>
-                        <TableCell>₹ {item.rate.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">₹ {item.amount.toFixed(2)}</TableCell>
+                        <TableCell>{Number(item.grossWeight).toFixed(2)} KG</TableCell>
+                        <TableCell>{Number(item.tareWeight).toFixed(2)} KG</TableCell>
+                        <TableCell>{Number(item.netWeight).toFixed(2)} KG</TableCell>
+                        <TableCell>{Number(item.mudDeduction).toFixed(2)} %</TableCell>
+                        <TableCell>{Number(item.finalWeight).toFixed(2)} KG</TableCell>
+                        <TableCell>₹ {Number(item.rate).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">₹ {Number(item.amount).toFixed(2)}</TableCell>
                         <TableCell className="text-center print-hide">
                           <Button variant="ghost" size="icon" onClick={() => handleDeleteItem(item.uniqueId)}>
                             <Trash2 className="h-4 w-4 text-red-600" />
