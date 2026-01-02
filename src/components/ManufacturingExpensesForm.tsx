@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -35,45 +35,23 @@ const manufacturingExpensesSchema = z.object({
 
 type ManufacturingExpensesFormValues = z.infer<typeof manufacturingExpensesSchema>;
 
-// Define the interface for a Manufacturing Expense document in Firestore
-interface ManufacturingExpense {
-  id?: string; // Firestore ID
-  manufacturedItemName: string;
-  totalPurchaseItemKg: number;
-  manufacturedItemKg: number;
-  plantLabourRate: number;
-  khakhoraLabourRate: number;
-  loadingLabourRate: number;
-  freightRate: number;
-  // Calculated fields
-  manufacturedItemStock: number;
-  plantLabourCost: number;
-  khakhoraLabourCost: number;
-  loadingLabourCost: number;
-  freightCost: number;
-  totalManufacturingExpense: number;
-  createdAt?: any; // serverTimestamp
-  updatedAt?: any; // serverTimestamp
-}
-
 const ManufacturingExpensesForm: React.FC = () => {
   // Fetch purchase invoices using useFirestore
   const { data: purchaseInvoices, loading: loadingPurchaseInvoices, error: purchaseInvoicesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  // Use useFirestore to add manufacturing expenses
-  const { addDocument: addManufacturingExpense, loading: savingExpense, error: saveError } = useFirestore<ManufacturingExpense>('manufacturingExpenses');
+  // Removed useFirestore for 'manufacturingExpenses' as we are no longer saving.
 
   const form = useForm<ManufacturingExpensesFormValues>({
     resolver: zodResolver(manufacturingExpensesSchema),
     defaultValues: {
-      manufacturedItemName: "",
-      plantLabourRate: 0,
-      khakhoraLabourRate: 0,
-      loadingLabourRate: 0,
-      freightRate: 0,
+      manufacturedItemName: localStorage.getItem('manufacturedItemName') || "",
+      plantLabourRate: Number(localStorage.getItem('plantLabourRate')) || 0,
+      khakhoraLabourRate: Number(localStorage.getItem('khakhoraLabourRate')) || 0,
+      loadingLabourRate: Number(localStorage.getItem('loadingLabourRate')) || 0,
+      freightRate: Number(localStorage.getItem('freightRate')) || 0,
     },
   });
 
-  const { watch, handleSubmit, setValue, formState: { errors } } = form;
+  const { watch, formState: { errors } } = form;
 
   const manufacturedItemName = watch("manufacturedItemName");
   const plantLabourRate = watch("plantLabourRate");
@@ -98,6 +76,15 @@ const ManufacturingExpensesForm: React.FC = () => {
     }
   }, [purchaseInvoices]); // Depend on purchaseInvoices from Firestore
 
+  // Effect to persist form values to local storage
+  useEffect(() => {
+    localStorage.setItem('manufacturedItemName', manufacturedItemName);
+    localStorage.setItem('plantLabourRate', String(plantLabourRate));
+    localStorage.setItem('khakhoraLabourRate', String(khakhoraLabourRate));
+    localStorage.setItem('loadingLabourRate', String(loadingLabourRate));
+    localStorage.setItem('freightRate', String(freightRate));
+  }, [manufacturedItemName, plantLabourRate, khakhoraLabourRate, loadingLabourRate, freightRate]);
+
   // Calculations based on the image
   const manufacturedItemStock = manufacturedItemKg; // This is the output of the manufacturing process
   const plantLabourCost = totalPurchaseItemKg * Number(plantLabourRate);
@@ -107,39 +94,8 @@ const ManufacturingExpensesForm: React.FC = () => {
 
   const totalManufacturingExpense = plantLabourCost + khakhoraLabourCost + loadingLabourCost + freightCost;
 
-  const onSubmit = async (data: ManufacturingExpensesFormValues) => {
-    const expenseToSave: Omit<ManufacturingExpense, 'id'> = {
-      manufacturedItemName: data.manufacturedItemName,
-      totalPurchaseItemKg: totalPurchaseItemKg,
-      manufacturedItemKg: manufacturedItemKg,
-      plantLabourRate: Number(data.plantLabourRate),
-      khakhoraLabourRate: Number(data.khakhoraLabourRate),
-      loadingLabourRate: Number(data.loadingLabourRate),
-      freightRate: Number(data.freightRate),
-      manufacturedItemStock: manufacturedItemStock,
-      plantLabourCost: plantLabourCost,
-      khakhoraLabourCost: khakhoraLabourCost,
-      loadingLabourCost: loadingLabourCost,
-      freightCost: freightCost,
-      totalManufacturingExpense: totalManufacturingExpense,
-    };
-
-    const addedId = await addManufacturingExpense(expenseToSave);
-    if (addedId) {
-      showSuccess("Manufacturing expenses calculated and saved!");
-      // Optionally reset form or show a success message
-      form.reset(); // Reset form fields after successful save
-      setTotalPurchaseItemKg(0); // Reset calculated fields
-      setManufacturedItemKg(0);
-    } else {
-      showError("Failed to save manufacturing expenses.");
-    }
-  };
-
-  const onError = (errors: any) => {
-    console.error("Form validation errors:", errors);
-    showError("Please correct the errors in the form.");
-  };
+  // Removed onSubmit function as we are no longer saving.
+  // The calculations are now live based on watched form values.
 
   if (loadingPurchaseInvoices) {
     return <div className="text-center py-8 text-lg">Loading purchase data for calculations...</div>;
@@ -156,10 +112,10 @@ const ManufacturingExpensesForm: React.FC = () => {
       <Card className="w-full max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Manufacturing Details</CardTitle>
-          <CardDescription>Enter details to calculate manufacturing expenses and stock.</CardDescription>
+          <CardDescription>Enter details to calculate manufacturing expenses and stock dynamically.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
+          <form className="space-y-6"> {/* Removed onSubmit handler */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="manufacturedItemName">Manufactured Item Name</Label>
@@ -241,10 +197,7 @@ const ManufacturingExpensesForm: React.FC = () => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={savingExpense}>
-              {savingExpense ? "Saving..." : "Calculate & Save Expenses"}
-            </Button>
-            {saveError && <p className="text-red-500 text-sm mt-2">Error saving: {saveError}</p>}
+            {/* Removed the submit button as calculations are now dynamic and not saved */}
           </form>
         </CardContent>
       </Card>
