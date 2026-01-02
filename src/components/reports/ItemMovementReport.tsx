@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Printer, Share2 } from "lucide-react";
+import { Printer, Share2, FileSpreadsheet, FileText as FileTextIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
 import { Item as GlobalItem } from "@/components/ItemForm";
@@ -22,6 +22,7 @@ import { DateRange } from "react-day-picker";
 import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 interface ItemMovementSummary {
   item: GlobalItem;
@@ -33,27 +34,17 @@ interface ItemMovementSummary {
 
 const ItemMovementReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [allItems, setAllItems] = useState<GlobalItem[]>([]);
-  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
+  
+  // Fetch data using useFirestore hook
+  const { data: allItems, loading: loadingItems, error: itemsError } = useFirestore<GlobalItem>('items');
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  useEffect(() => {
-    const storedItems = localStorage.getItem("items");
-    if (storedItems) {
-      const parsedItems: GlobalItem[] = JSON.parse(storedItems);
-      setAllItems(parsedItems.map(item => ({ ...item, stock: Number(item.stock || 0) })));
-    }
-    const storedSalesInvoices = localStorage.getItem("salesInvoices");
-    if (storedSalesInvoices) {
-      setSalesInvoices(JSON.parse(storedSalesInvoices));
-    }
-    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedPurchaseInvoices) {
-      setPurchaseInvoices(JSON.parse(storedPurchaseInvoices));
-    }
-  }, []);
+  const isLoading = loadingItems || loadingSales || loadingPurchases;
+  const hasError = itemsError || salesError || purchasesError;
 
   const itemMovementData = useMemo(() => {
     const summaryMap = new Map<string, ItemMovementSummary>();
@@ -205,6 +196,14 @@ const ItemMovementReport: React.FC = () => {
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-lg">Loading item movement data...</div>;
+  }
+
+  if (hasError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading item movement data: {hasError}</div>;
+  }
 
   return (
     <Card>

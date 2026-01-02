@@ -22,6 +22,7 @@ import { DateRange } from "react-day-picker";
 import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 interface ConsolidatedEntry {
   date: string;
@@ -36,26 +37,17 @@ interface ConsolidatedEntry {
 
 const ConsolidatedTransactionReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
-  const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
+  
+  // Fetch data using useFirestore hook
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
-  useEffect(() => {
-    const storedSalesInvoices = localStorage.getItem("salesInvoices");
-    if (storedSalesInvoices) {
-      setSalesInvoices(JSON.parse(storedSalesInvoices));
-    }
-    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedPurchaseInvoices) {
-      setPurchaseInvoices(JSON.parse(storedPurchaseInvoices));
-    }
-    const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
-    if (storedCashBankTransactions) {
-      setCashBankTransactions(JSON.parse(storedCashBankTransactions));
-    }
-  }, []);
+  const isLoading = loadingSales || loadingPurchases || loadingCashBank;
+  const hasError = salesError || purchasesError || cashBankError;
 
   const consolidatedData = useMemo(() => {
     let entries: ConsolidatedEntry[] = [];
@@ -223,6 +215,14 @@ const ConsolidatedTransactionReport: React.FC = () => {
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-lg">Loading consolidated transaction data...</div>;
+  }
+
+  if (hasError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading consolidated transaction data: {hasError}</div>;
+  }
 
   return (
     <Card>

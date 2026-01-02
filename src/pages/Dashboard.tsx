@@ -7,9 +7,10 @@ import { Link } from "react-router-dom";
 import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balanceCalculations";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
-import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDays } from "lucide-react"; // Added missing imports and new icons
+import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
-import { Separator } from "@/components/ui/separator"; // Import Separator
+import { Separator } from "@/components/ui/separator";
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 interface Farmer {
   id: string;
@@ -34,46 +35,15 @@ interface ManufacturingExpense {
 }
 
 const Dashboard = () => {
-  const [farmers, setFarmers] = useState<Farmer[]>([]);
-  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
-  const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
-  const [manufacturingExpenses, setManufacturingExpenses] = useState<ManufacturingExpense[]>([]);
+  // Fetch data using useFirestore hook
+  const { data: farmers, loading: loadingFarmers, error: farmersError } = useFirestore<Farmer>('farmers');
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
+  const { data: manufacturingExpenses, loading: loadingManufacturing, error: manufacturingError } = useFirestore<ManufacturingExpense>('manufacturingExpenses');
 
-  useEffect(() => {
-    const storedFarmers = localStorage.getItem("farmers");
-    if (storedFarmers) setFarmers(JSON.parse(storedFarmers));
-
-    const storedSalesInvoices = localStorage.getItem("salesInvoices");
-    if (storedSalesInvoices) {
-      const parsedInvoices: CompleteSalesInvoice[] = JSON.parse(storedSalesInvoices);
-      const processedInvoices = parsedInvoices.map(invoice => ({
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        advance: Number(invoice.advance),
-        due: Number(invoice.due),
-      }));
-      setSalesInvoices(processedInvoices);
-    }
-
-    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedPurchaseInvoices) {
-      const parsedInvoices: CompletePurchaseInvoice[] = JSON.parse(storedPurchaseInvoices);
-      const processedInvoices = parsedInvoices.map(invoice => ({
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        advance: Number(invoice.advance),
-        due: Number(invoice.due),
-      }));
-      setPurchaseInvoices(processedInvoices);
-    }
-
-    const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
-    if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
-
-    const storedManufacturingExpenses = localStorage.getItem("manufacturingExpenses");
-    if (storedManufacturingExpenses) setManufacturingExpenses(JSON.parse(storedManufacturingExpenses));
-  }, []);
+  const isLoading = loadingFarmers || loadingSales || loadingPurchases || loadingCashBank || loadingManufacturing;
+  const hasError = farmersError || salesError || purchasesError || cashBankError || manufacturingError;
 
   const {
     totalPaymentsIn,
@@ -152,6 +122,14 @@ const Dashboard = () => {
       majorPayments: majorPaymentsList,
     };
   }, [farmers, salesInvoices, purchaseInvoices, cashBankTransactions, manufacturingExpenses]);
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-lg">Loading dashboard data...</div>;
+  }
+
+  if (hasError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading dashboard data: {hasError}</div>;
+  }
 
   return (
     <div className="space-y-6">

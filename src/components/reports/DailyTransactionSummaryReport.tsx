@@ -25,42 +25,19 @@ import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction } from "@/utils/balanceCalculations";
 import { showError } from "@/utils/toast";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 
 const DailyTransactionSummaryReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
-  const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
-  const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
+  
+  // Fetch data using useFirestore hook
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
 
-  useEffect(() => {
-    const storedSalesInvoices = localStorage.getItem("salesInvoices");
-    if (storedSalesInvoices) {
-      const parsedInvoices: CompleteSalesInvoice[] = JSON.parse(storedSalesInvoices);
-      const processedInvoices = parsedInvoices.map(invoice => ({
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        advance: Number(invoice.advance),
-        due: Number(invoice.due),
-      }));
-      setSalesInvoices(processedInvoices);
-    }
-
-    const storedPurchaseInvoices = localStorage.getItem("purchaseInvoices");
-    if (storedPurchaseInvoices) {
-      const parsedInvoices: CompletePurchaseInvoice[] = JSON.parse(storedPurchaseInvoices);
-      const processedInvoices = parsedInvoices.map(invoice => ({
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        advance: Number(invoice.advance),
-        due: Number(invoice.due),
-      }));
-      setPurchaseInvoices(processedInvoices);
-    }
-
-    const storedCashBankTransactions = localStorage.getItem("cashBankTransactions");
-    if (storedCashBankTransactions) setCashBankTransactions(JSON.parse(storedCashBankTransactions));
-  }, []);
+  const isLoading = loadingSales || loadingPurchases || loadingCashBank;
+  const hasError = salesError || purchasesError || cashBankError;
 
   const formattedDate = date ? format(date, "yyyy-MM-dd") : "";
   const displayDate = date ? format(date, "PPP") : "Select a date";
@@ -113,6 +90,14 @@ const DailyTransactionSummaryReport: React.FC = () => {
   };
 
   const t = (english: string, hindi: string) => (printInHindi ? hindi : english);
+
+  if (isLoading) {
+    return <div className="text-center py-8 text-lg">Loading daily transaction summary...</div>;
+  }
+
+  if (hasError) {
+    return <div className="text-center py-8 text-lg text-red-500">Error loading daily transaction summary: {hasError}</div>;
+  }
 
   return (
     <Card>
