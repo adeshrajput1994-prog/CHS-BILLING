@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Printer, Share2 } from "lucide-react";
+import { Printer, Share2, FileSpreadsheet, FileText as FileTextIcon } from "lucide-react"; // Added FileSpreadsheet and FileTextIcon
 import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
