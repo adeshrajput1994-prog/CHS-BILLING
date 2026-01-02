@@ -1,0 +1,29 @@
+{
+  "name": "vyapar-app",
+  "version": "1.0.0",
+  "description": "Vyapar Business Management App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.example.vyaparapp",
+    "productName": "Vyapar App",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
