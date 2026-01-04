@@ -9,24 +9,25 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useCompany } from "@/context/CompanyContext";
 
 // Define the Zod schema for farmer details
 const farmerSchema = z.object({
   farmerName: z.string().min(1, { message: "Farmer Name is required." }),
-  fathersName: z.string().optional(), // Made optional
+  fathersName: z.string().optional(),
   village: z.string().min(1, { message: "Village is required." }),
   mobileNo: z.string()
-    .optional() // Made optional
+    .optional()
     .refine((val) => !val || /^\d{10}$/.test(val), { message: "Mobile No. must be 10 digits if provided." }),
   aadharCardNo: z.string()
-    .optional() // Made optional
+    .optional()
     .refine((val) => !val || /^\d{12}$/.test(val), { message: "Aadhar Card No. must be 12 digits if provided." }),
-  accountName: z.string().optional(), // Made optional
+  accountName: z.string().optional(),
   accountNo: z.string()
-    .optional() // Made optional
+    .optional()
     .refine((val) => !val || /^\d{9,18}$/.test(val), { message: "Account No. must be between 9 and 18 digits if provided." }),
   ifscCode: z.string()
-    .optional() // Made optional
+    .optional()
     .refine((val) => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val), { message: "Invalid IFSC Code format if provided." }),
 });
 
@@ -35,22 +36,26 @@ type FarmerFormValues = z.infer<typeof farmerSchema>;
 interface Farmer {
   id: string;
   farmerName: string;
-  fathersName?: string; // Made optional
+  fathersName?: string;
   village: string;
-  mobileNo?: string; // Made optional
-  aadharCardNo?: string; // Made optional
-  accountName?: string; // Made optional
-  accountNo?: string; // Made optional
-  ifscCode?: string; // Made optional
+  mobileNo?: string;
+  aadharCardNo?: string;
+  accountName?: string;
+  accountNo?: string;
+  ifscCode?: string;
+  companyId: string;
 }
 
 interface FarmersFormProps {
   initialData?: Farmer | null;
-  onSave: (farmer: FarmerFormValues & { id?: string }) => void; // id is optional for new farmers
+  onSave: (farmer: FarmerFormValues & { id?: string; companyId: string }) => void;
   onCancel: () => void;
 }
 
 const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel }) => {
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+  
   const form = useForm<FarmerFormValues>({
     resolver: zodResolver(farmerSchema),
     defaultValues: initialData || {
@@ -65,7 +70,7 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
     },
   });
 
-  // Reset form fields when initialData changes (e.g., switching from add to edit, or clearing edit)
+  // Reset form fields when initialData changes
   React.useEffect(() => {
     if (initialData) {
       form.reset(initialData);
@@ -84,8 +89,15 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
   }, [initialData, form]);
 
   const onSubmit = (data: FarmerFormValues) => {
-    // If initialData exists, we are editing, so include the existing ID
-    const farmerToSave = initialData ? { ...data, id: initialData.id } : data;
+    if (!currentCompanyId) {
+      showError("Please select a company before saving farmer details.");
+      return;
+    }
+    
+    const farmerToSave = initialData 
+      ? { ...data, id: initialData.id, companyId: currentCompanyId }
+      : { ...data, companyId: currentCompanyId };
+      
     onSave(farmerToSave);
     showSuccess(`Farmer ${initialData ? "updated" : "added"} successfully!`);
   };
@@ -105,10 +117,15 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">
-          {initialData && ( // Only show Farmer ID field if editing
+          {initialData && (
             <div className="space-y-2">
               <Label htmlFor="farmerId">Farmer ID</Label>
               <Input id="farmerId" value={initialData.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+            </div>
+          )}
+          {!currentCompanyId && (
+            <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+              <p className="text-red-600 text-sm">⚠️ Please select a company first before adding farmers.</p>
             </div>
           )}
           <div className="space-y-2">
@@ -169,7 +186,9 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit">{initialData ? "Update Farmer Details" : "Save Farmer Details"}</Button>
+            <Button type="submit" disabled={!currentCompanyId}>
+              {initialData ? "Update Farmer Details" : "Save Farmer Details"}
+            </Button>
           </div>
         </form>
       </CardContent>

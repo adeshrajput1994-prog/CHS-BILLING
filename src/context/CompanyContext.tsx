@@ -2,13 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { showSuccess, showError } from '@/utils/toast';
-import { useFirestore } from '@/hooks/use-firestore'; // Import useFirestore hook
+import { useFirestore } from '@/hooks/use-firestore';
 
 interface Company {
   id: string;
   name: string;
   address: string;
-  financialYears: string[]; // e.g., ["2023-2024", "2024-2025"]
+  financialYears: string[];
 }
 
 interface CompanyContextType {
@@ -18,8 +18,11 @@ interface CompanyContextType {
   addCompany: (name: string, address: string, startYear: number) => void;
   selectCompany: (companyId: string) => void;
   selectFinancialYear: (year: string) => void;
-  loading: boolean; // Add loading state
-  error: string | null; // Add error state
+  loading: boolean;
+  error: string | null;
+  // Add methods to filter data by company
+  filterByCompany: <T extends { companyId?: string }>(data: T[]) => T[];
+  getCurrentCompanyId: () => string | null;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
@@ -28,7 +31,6 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState<string | null>(null);
   
-  // Use useFirestore hook for companies
   const { 
     data: companies, 
     loading, 
@@ -37,7 +39,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     updateDocument: updateCompanyDocument
   } = useFirestore<Company>('companies');
 
-  // Load selected company and financial year from localStorage on initial mount
+  // Load selected company from localStorage on initial mount
   useEffect(() => {
     const storedSelectedCompanyId = localStorage.getItem('selectedCompanyId');
     const storedSelectedFinancialYear = localStorage.getItem('selectedFinancialYear');
@@ -49,17 +51,16 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         if (company.financialYears.includes(storedSelectedFinancialYear || "")) {
           setSelectedFinancialYear(storedSelectedFinancialYear);
         } else if (company.financialYears.length > 0) {
-          setSelectedFinancialYear(company.financialYears[0]); // Default to first financial year if stored one is invalid
+          setSelectedFinancialYear(company.financialYears[0]);
         }
       }
     } else if (companies.length > 0) {
-      // If no company was previously selected, select the first one
       setSelectedCompany(companies[0]);
       if (companies[0].financialYears.length > 0) {
         setSelectedFinancialYear(companies[0].financialYears[0]);
       }
     }
-  }, [companies]); // Depend on companies data from Firestore
+  }, [companies]);
 
   // Save selected company ID to localStorage
   useEffect(() => {
@@ -89,9 +90,9 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
 
     const addedId = await addCompanyDocument(newCompany);
     if (addedId) {
-      // The useFirestore hook will automatically update the companies list
       if (!selectedCompany) {
-        // If no company was previously selected, the new one will be selected automatically by the useEffect
+        // Auto-select the new company if none was selected
+        selectCompany(addedId);
       }
       showSuccess(`Company '${name}' added successfully for financial year ${financialYear}!`);
     } else {
@@ -104,11 +105,14 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     if (company) {
       setSelectedCompany(company);
       if (company.financialYears.length > 0) {
-        setSelectedFinancialYear(company.financialYears[0]); // Default to first financial year
+        setSelectedFinancialYear(company.financialYears[0]);
       } else {
         setSelectedFinancialYear(null);
       }
       showSuccess(`Company changed to '${company.name}'.`);
+    } else if (companyId === "") {
+      setSelectedCompany(null);
+      setSelectedFinancialYear(null);
     } else {
       showError("Company not found.");
     }
@@ -123,6 +127,17 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Filter data by currently selected company
+  const filterByCompany = <T extends { companyId?: string }>(data: T[]): T[] => {
+    if (!selectedCompany) return [];
+    return data.filter(item => item.companyId === selectedCompany.id);
+  };
+
+  // Get current company ID
+  const getCurrentCompanyId = (): string | null => {
+    return selectedCompany?.id || null;
+  };
+
   return (
     <CompanyContext.Provider value={{
       companies,
@@ -131,8 +146,10 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
       addCompany,
       selectCompany,
       selectFinancialYear,
-      loading, // Provide loading state
-      error // Provide error state
+      loading,
+      error,
+      filterByCompany,
+      getCurrentCompanyId
     }}>
       {children}
     </CompanyContext.Provider>

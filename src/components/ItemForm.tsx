@@ -9,6 +9,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useCompany } from "@/context/CompanyContext";
 
 // Define the Zod schema for item details
 const itemSchema = z.object({
@@ -17,7 +18,7 @@ const itemSchema = z.object({
     (val) => Number(val),
     z.number().min(0.01, { message: "Rate per KG must be a positive number." })
   ),
-  stock: z.preprocess( // New stock field
+  stock: z.preprocess(
     (val) => Number(val),
     z.number().min(0, { message: "Stock cannot be negative." })
   ),
@@ -25,30 +26,34 @@ const itemSchema = z.object({
 
 type ItemFormValues = z.infer<typeof itemSchema>;
 
-export interface Item { // Exported for use in other components
+export interface Item {
   id: string;
   itemName: string;
   ratePerKg: number;
-  stock: number; // New stock field
+  stock: number;
+  companyId: string;
 }
 
 interface ItemFormProps {
   initialData?: Item | null;
-  onSave: (item: ItemFormValues & { id?: string }) => void; // id is optional for new items
+  onSave: (item: ItemFormValues & { id?: string; companyId: string }) => void;
   onCancel: () => void;
 }
 
 const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) => {
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+  
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemSchema),
     defaultValues: initialData || {
       itemName: "",
       ratePerKg: 0,
-      stock: 0, // Default stock
+      stock: 0,
     },
   });
 
-  // Reset form fields when initialData changes (e.g., switching from add to edit, or clearing edit)
+  // Reset form fields when initialData changes
   React.useEffect(() => {
     if (initialData) {
       form.reset(initialData);
@@ -62,8 +67,15 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
   }, [initialData, form]);
 
   const onSubmit = (data: ItemFormValues) => {
-    // If initialData exists, we are editing, so include the existing ID
-    const itemToSave = initialData ? { ...data, id: initialData.id } : data;
+    if (!currentCompanyId) {
+      showError("Please select a company before saving item details.");
+      return;
+    }
+    
+    const itemToSave = initialData 
+      ? { ...data, id: initialData.id, companyId: currentCompanyId }
+      : { ...data, companyId: currentCompanyId };
+      
     onSave(itemToSave);
     showSuccess(`Item ${initialData ? "updated" : "added"} successfully!`);
   };
@@ -83,10 +95,15 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">
-          {initialData && ( // Only show Item ID field if editing
+          {initialData && (
             <div className="space-y-2">
               <Label htmlFor="itemId">Item ID</Label>
               <Input id="itemId" value={initialData.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+            </div>
+          )}
+          {!currentCompanyId && (
+            <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+              <p className="text-red-600 text-sm">⚠️ Please select a company first before adding items.</p>
             </div>
           )}
           <div className="space-y-2">
@@ -112,7 +129,9 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-            <Button type="submit" className="w-full">{initialData ? "Update Item Details" : "Save and Next"}</Button>
+            <Button type="submit" className="w-full" disabled={!currentCompanyId}>
+              {initialData ? "Update Item Details" : "Save and Next"}
+            </Button>
           </div>
         </form>
       </CardContent>

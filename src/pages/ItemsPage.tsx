@@ -3,40 +3,44 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Printer } from "lucide-react";
-import ItemForm, { Item } from "@/components/ItemForm"; // Import Item interface from ItemForm
-import ItemTable from "@/components/ItemTable"; // Import the new ItemTable
+import ItemForm, { Item } from "@/components/ItemForm";
+import ItemTable from "@/components/ItemTable";
 import { Input } from "@/components/ui/input";
-import { getNextItemId } from "@/utils/idGenerators"; // Import from new utility
 import { showSuccess, showError } from "@/utils/toast";
-import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useFirestore } from "@/hooks/use-firestore";
+import { useCompany } from "@/context/CompanyContext";
 
 const ItemsPage = () => {
-  // Replace localStorage state with useFirestore hook
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+  
   const { data: items, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Item>('items');
   
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
+  // Filter items by current company
+  const companyItems = items.filter(item => item.companyId === currentCompanyId);
 
   const handleAddItem = async (newItemData: Omit<Item, 'id'>) => {
-    // Firestore will generate the actual document ID.
-    // We can still use getNextItemId for a client-side generated 'id' property if needed for display or specific logic,
-    // but for Firestore, the document ID is primary.
-    const addedId = await addDocument({ ...newItemData, stock: Number(newItemData.stock || 0) });
+    if (!currentCompanyId) {
+      showError("Please select a company before adding items.");
+      return;
+    }
+    
+    const itemWithCompany = { ...newItemData, companyId: currentCompanyId };
+    const addedId = await addDocument(itemWithCompany);
     if (addedId) {
-      // useFirestore will refetch data, so no manual state update needed here
-      setViewMode('list'); // Go back to list view after adding
+      setViewMode('list');
     }
   };
 
   const handleEditItem = async (updatedItemData: Item) => {
     if (updatedItemData.id) {
-      await updateDocument(updatedItemData.id, { ...updatedItemData, stock: Number(updatedItemData.stock || 0) });
-      // useFirestore will refetch data
-      setEditingItem(null); // Clear editing state
-      setViewMode('list'); // Go back to list view after editing
+      await updateDocument(updatedItemData.id, updatedItemData);
+      setEditingItem(null);
+      setViewMode('list');
     } else {
       showError("Item ID is missing for update.");
     }
@@ -44,12 +48,11 @@ const ItemsPage = () => {
 
   const handleDeleteItem = async (id: string) => {
     await deleteDocument(id);
-    // useFirestore will refetch data
   };
 
   const handleCancelForm = () => {
-    setEditingItem(null); // Clear editing state
-    setViewMode('list'); // Go back to list view
+    setEditingItem(null);
+    setViewMode('list');
   };
 
   const handleOpenEditForm = (item: Item) => {
@@ -64,7 +67,7 @@ const ItemsPage = () => {
   };
 
   // Filter items based on search term
-  const filteredItems = items.filter(item =>
+  const filteredItems = companyItems.filter(item =>
     item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -75,6 +78,14 @@ const ItemsPage = () => {
 
   if (error) {
     return <div className="text-center py-8 text-lg text-red-500">Error: {error}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <div className="text-center py-8 text-lg">
+        Please select a company from Company Settings to view items.
+      </div>
+    );
   }
 
   return (
