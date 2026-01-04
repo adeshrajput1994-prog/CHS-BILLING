@@ -387,8 +387,10 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
               <Label htmlFor="invoiceNo" className="text-right">{t("INVOICE NO", "चालान संख्या")}</Label>
               <Input id="invoiceNo" value={currentInvoiceNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="farmerId" className="text-right">{t("FARMER ID", "किसान आईडी")}</Label>
-              <Input id="farmerId" value={selectedFarmer?.id || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+              <Label htmlFor="farmerId" className="text-right print-hide">{t("FARMER ID", "किसान आईडी")}</Label>
+              <Input id="farmerId" value={selectedFarmer?.id || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input id="farmerIdDisplay" value={selectedFarmer?.id || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-hide" />
+
 
               <Label htmlFor="farmerNameDisplay" className="text-right">{t("FARMER", "किसान")}</Label>
               <div className="flex items-center space-x-2 print-hide">
@@ -464,17 +466,25 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 </p>
               )}
 
-              <Label htmlFor="village" className="text-right">{t("VILLAGE", "गाँव")}</Label>
-              <Input id="village" value={selectedFarmer?.village || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+              <Label htmlFor="village" className="text-right print-hide">{t("VILLAGE", "गाँव")}</Label>
+              <Input id="village" value={selectedFarmer?.village || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input id="villageDisplay" value={selectedFarmer?.village || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-hide" />
 
-              <Label htmlFor="accountName" className="text-right">{t("ACCOUNT NAME", "खाता नाम")}</Label>
-              <Input id="accountName" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
 
-              <Label htmlFor="accountNo" className="text-right">{t("ACCOUNT NO", "खाता संख्या")}</Label>
-              <Input id="accountNo" value={selectedFarmer?.accountNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+              <Label htmlFor="accountName" className="text-right print-hide">{t("ACCOUNT NAME", "खाता नाम")}</Label>
+              <Input id="accountName" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input id="accountNameDisplay" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-hide" />
 
-              <Label htmlFor="ifscCode" className="text-right">{t("IFSC", "आईएफएससी")}</Label>
-              <Input id="ifscCode" value={selectedFarmer?.ifscCode || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+
+              <Label htmlFor="accountNo" className="text-right print-hide">{t("ACCOUNT NO", "खाता संख्या")}</Label>
+              <Input id="accountNo" value={selectedFarmer?.accountNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input id="accountNoDisplay" value={selectedFarmer?.accountNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-hide" />
+
+
+              <Label htmlFor="ifscCode" className="text-right print-hide">{t("IFSC", "आईएफएससी")}</Label>
+              <Input id="ifscCode" value={selectedFarmer?.ifscCode || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-only" />
+              <Input id="ifscCodeDisplay" value={selectedFarmer?.ifscCode || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 print-hide" />
+
 
               {/* Right column fields */}
               <div className="col-start-2 row-start-1 flex items-center space-x-2">
@@ -482,20 +492,23 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                 <Input id="invoiceDate" value={currentInvoiceDate} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-2 flex items-center space-x-2">
-                <Label htmlFor="fathersName" className="w-1/2 text-right">{t("FATHER", "पिता")}</Label>
-                <Input id="fathersName" value={selectedFarmer?.fathersName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
+                <Label htmlFor="fathersName" className="w-1/2 text-right print-hide">{t("FATHER", "पिता")}</Label>
+                <Input id="fathersName" value={selectedFarmer?.fathersName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-only" />
+                <Input id="fathersNameDisplay" value={selectedFarmer?.fathersName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-hide" />
               </div>
               <div className="col-start-2 row-start-3 flex items-center space-x-2">
-                <Label htmlFor="mobileNo" className="w-1/2 text-right">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
-                <Input id="mobileNo" value={selectedFarmer?.mobileNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
+                <Label htmlFor="mobileNo" className="w-1/2 text-right print-hide">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
+                <Input id="mobileNo" value={selectedFarmer?.mobileNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-only" />
+                <Input id="mobileNoDisplay" value={selectedFarmer?.mobileNo || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-hide" />
               </div>
               <div className="col-start-2 row-start-4 flex items-center space-x-2">
                 <Label htmlFor="invoiceTime" className="w-1/2 text-right">{t("TIME", "समय")}</Label>
                 <Input id="invoiceTime" value={currentInvoiceTime} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" />
               </div>
               <div className="col-start-2 row-start-5 flex items-center space-x-2">
-                <Label htmlFor="bank" className="w-1/2 text-right">{t("BANK", "बैंक")}</Label>
-                <Input id="bank" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2" /> {/* Assuming bank name is account name */}
+                <Label htmlFor="bank" className="w-1/2 text-right print-hide">{t("BANK", "बैंक")}</Label>
+                <Input id="bank" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-only" /> {/* Assuming bank name is account name */}
+                <Input id="bankDisplay" value={selectedFarmer?.accountName || ""} readOnly disabled className="bg-gray-100 dark:bg-gray-800 w-1/2 print-hide" />
               </div>
             </div>
           </CardContent>

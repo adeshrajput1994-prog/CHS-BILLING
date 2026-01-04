@@ -491,41 +491,41 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 
               {selectedFarmer ? (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="farmerId">{t("FARMER ID", "किसान आईडी")}</Label>
-                    <Input id="farmerId" value={selectedFarmer.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="farmerIdPrint">{t("FARMER ID", "किसान आईडी")}</Label>
+                    <Input id="farmerIdPrint" value={selectedFarmer.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="farmerNameDisplay">{t("FARMER", "किसान")}</Label>
-                    <Input id="farmerNameDisplay" value={selectedFarmer.farmerName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="farmerNameDisplayPrint">{t("FARMER", "किसान")}</Label>
+                    <Input id="farmerNameDisplayPrint" value={selectedFarmer.farmerName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fathersName">{t("FATHER", "पिता")}</Label>
-                    <Input id="fathersName" value={selectedFarmer.fathersName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="fathersNamePrint">{t("FATHER", "पिता")}</Label>
+                    <Input id="fathersNamePrint" value={selectedFarmer.fathersName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="village">{t("VILLAGE", "गाँव")}</Label>
-                    <Input id="village" value={selectedFarmer.village} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="villagePrint">{t("VILLAGE", "गाँव")}</Label>
+                    <Input id="villagePrint" value={selectedFarmer.village} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mobileNo">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
-                    <Input id="mobileNo" value={selectedFarmer.mobileNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="mobileNoPrint">{t("MOBILE NO", "मोबाइल नंबर")}</Label>
+                    <Input id="mobileNoPrint" value={selectedFarmer.mobileNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="accountName">{t("ACCOUNT NAME", "खाता नाम")}</Label>
-                    <Input id="accountName" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="accountNamePrint">{t("ACCOUNT NAME", "खाता नाम")}</Label>
+                    <Input id="accountNamePrint" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="accountNo">{t("ACCOUNT NO", "खाता संख्या")}</Label>
-                    <Input id="accountNo" value={selectedFarmer.accountNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="accountNoPrint">{t("ACCOUNT NO", "खाता संख्या")}</Label>
+                    <Input id="accountNoPrint" value={selectedFarmer.accountNo} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ifscCode">{t("IFSC", "आईएफएससी")}</Label>
-                    <Input id="ifscCode" value={selectedFarmer.ifscCode} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="ifscCodePrint">{t("IFSC", "आईएफएससी")}</Label>
+                    <Input id="ifscCodePrint" value={selectedFarmer.ifscCode} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bank">{t("BANK", "बैंक")}</Label>
-                    <Input id="bank" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" /> {/* Assuming bank name is account name */}
+                  <div className="space-y-2 print-only">
+                    <Label htmlFor="bankPrint">{t("BANK", "बैंक")}</Label>
+                    <Input id="bankPrint" value={selectedFarmer.accountName} readOnly disabled className="bg-gray-100 dark:bg-gray-800" /> {/* Assuming bank name is account name */}
                   </div>
                 </>
               ) : (

@@ -102,6 +102,10 @@
 }
 
 @media print {
+  @page {
+    margin: 10mm; /* Reduce default page margins */
+  }
+
   body.print-mode .print-hide {
     display: none !important;
   }
@@ -111,6 +115,7 @@
     padding: 0;
     background-color: #fff; /* Ensure white background for print */
     color: #000; /* Ensure black text for print */
+    font-size: 10pt; /* Smaller base font size for print */
   }
 
   body.print-mode #root { /* Adjust root container for print */
@@ -125,22 +130,76 @@
   }
 
   body.print-mode .flex-1.p-4.md\:p-6.lg\:p-8.overflow-auto { /* Main content area */
-    padding: 20px !important; /* Add some padding for print */
+    padding: 10px !important; /* Reduce padding for print */
     width: 100% !important;
     overflow: visible !important; /* Ensure all content is visible */
   }
 
-  /* Specific adjustments for table if needed */
+  /* Specific adjustments for Card components */
+  body.print-mode .card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    margin-bottom: 10px !important;
+  }
+
+  body.print-mode .card-header {
+    padding: 10px !important;
+  }
+
+  body.print-mode .card-content {
+    padding: 10px !important; /* Reduce card content padding */
+  }
+
+  /* Specific adjustments for table */
   body.print-mode table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 9pt; /* Smaller font for tables */
   }
   body.print-mode th,
   body.print-mode td {
     border: 1px solid #ccc;
-    padding: 8px;
+    padding: 4px 6px; /* Compact padding for table cells */
+    word-wrap: break-word; /* Ensure long text wraps */
   }
   body.print-mode th {
     background-color: #f2f2f2;
+  }
+
+  /* Hide elements with print-hide class */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Show elements with print-only class */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Ensure inputs are readable in print */
+  body.print-mode input[type="text"],
+  body.print-mode input[type="number"],
+  body.print-mode textarea {
+    border: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    font-size: 10pt !important;
+    height: auto !important;
+    min-height: unset !important;
+  }
+
+  /* Adjust grid layouts for print to be more linear or compact */
+  body.print-mode .grid {
+    display: block !important; /* Stack grid items */
+  }
+  body.print-mode .grid > div {
+    margin-bottom: 5px; /* Add some spacing between stacked items */
+  }
+  body.print-mode .grid > div > label {
+    width: 100% !important; /* Labels take full width */
+    text-align: left !important; /* Align labels left */
+  }
+  body.print-mode .grid > div > input {
+    width: 100% !important; /* Inputs take full width */
   }
 }
