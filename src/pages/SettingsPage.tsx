@@ -32,10 +32,6 @@ const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme(); // Use theme hook
   const { printInHindi, setPrintInHindi } = usePrintSettings(); // Use print settings hook
 
-  const [newCompanyName, setNewCompanyName] = useState("");
-  const [newCompanyAddress, setNewCompanyAddress] = useState("");
-  const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
-
   // Form for editing selected company details
   const companyEditForm = useForm<CompanyEditFormValues>({
     resolver: zodResolver(companyEditSchema),
@@ -54,17 +50,6 @@ const SettingsPage: React.FC = () => {
       });
     }
   }, [selectedCompany, companyEditForm]);
-
-  const handleAddCompany = () => {
-    if (newCompanyName.trim() === "" || newCompanyAddress.trim() === "") {
-      showError("Company Name and Address cannot be empty.");
-      return;
-    }
-    addCompany(newCompanyName, newCompanyAddress, newCompanyStartYear);
-    setNewCompanyName("");
-    setNewCompanyAddress("");
-    setNewCompanyStartYear(new Date().getFullYear());
-  };
 
   const handleUpdateCompanyDetails = (data: CompanyEditFormValues) => {
     if (!selectedCompany) {
@@ -100,7 +85,7 @@ const SettingsPage: React.FC = () => {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
+          <h2 className="2xl font-bold mb-2">Error Loading Data</h2>
           <p className="text-lg mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
@@ -147,7 +132,7 @@ const SettingsPage: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Company Management</CardTitle>
-          <CardDescription>Add new companies or select an active one.</CardDescription>
+          <CardDescription>Select an active company and financial year.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -191,28 +176,6 @@ const SettingsPage: React.FC = () => {
               <p className="text-sm font-medium">Active Financial Year: <span className="font-bold">{selectedFinancialYear || "N/A"}</span></p>
             </div>
           )}
-
-          <Separator className="my-4" />
-
-          <CardTitle className="text-xl">Add New Company</CardTitle>
-          <CardDescription>Create a new company profile with its initial financial year.</CardDescription>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newCompanyName">Company Name</Label>
-              <Input id="newCompanyName" placeholder="e.g., My Business Inc." value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newCompanyAddress">Company Address</Label>
-              <Input id="newCompanyAddress" placeholder="e.g., 123 Business St, City, State" value={newCompanyAddress} onChange={(e) => setNewCompanyAddress(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newCompanyStartYear">Financial Year Start (e.g., 2023 for 2023-2024)</Label>
-              <Input id="newCompanyStartYear" type="number" value={newCompanyStartYear} onChange={(e) => setNewCompanyStartYear(Number(e.target.value))} />
-            </div>
-            <Button onClick={handleAddCompany} className="w-full">
-              <Plus className="mr-2 h-4 w-4" /> Add Company
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -264,7 +227,7 @@ const SettingsPage: React.FC = () => {
                 <SelectItem value="custom">Custom Layout</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mt-2">
               *Note: Implementing different print layouts requires significant development. This is a placeholder for future functionality.
             </p>
           </div>
@@ -272,7 +235,7 @@ const SettingsPage: React.FC = () => {
             <Label htmlFor="printInHindi">Print Invoices in Hindi</Label>
             <Switch id="printInHindi" checked={printInHindi} onCheckedChange={setPrintInHindi} />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-2">
             *Note: Enabling this will translate *static labels* in invoices to Hindi for printing. Dynamic data (like farmer names, item names, remarks) will remain in English as automatic translation is beyond the scope of this client-side application.
           </p>
         </CardContent>
