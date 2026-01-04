@@ -7,11 +7,13 @@ import { Link } from "react-router-dom";
 import { calculateFarmerDueBalances, CashBankTransaction } from "@/utils/balanceCalculations";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
-import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDays } from "lucide-react";
+import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDays, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 import DashboardSalesPurchasesChart from "@/components/DashboardSalesPurchasesChart"; // Import the new chart component
+import DashboardTopItems from "@/components/DashboardTopItems"; // Import new Top Items component
+import DashboardFarmerActivity from "@/components/DashboardFarmerActivity"; // Import new Farmer Activity component
 
 interface Farmer {
   id: string;
@@ -139,6 +141,31 @@ const Dashboard = () => {
         Enter details to make your first sale 🚀
       </p>
 
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Perform common tasks quickly.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/sale">
+            <Button className="w-full h-auto py-4 text-lg">
+              <PlusCircle className="mr-2 h-5 w-5" /> Create Sales Invoice
+            </Button>
+          </Link>
+          <Link to="/purchase">
+            <Button className="w-full h-auto py-4 text-lg">
+              <PlusCircle className="mr-2 h-5 w-5" /> Create Purchase Invoice
+            </Button>
+          </Link>
+          <Link to="/cash-bank">
+            <Button className="w-full h-auto py-4 text-lg">
+              <PlusCircle className="mr-2 h-5 w-5" /> Record Payment
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -244,6 +271,12 @@ const Dashboard = () => {
 
       {/* Sales & Purchases Chart */}
       <DashboardSalesPurchasesChart />
+
+      {/* Top Items Overview */}
+      <DashboardTopItems />
+
+      {/* Top Farmer Activity */}
+      <DashboardFarmerActivity />
 
       {/* Major Payments Section */}
       <Card>
