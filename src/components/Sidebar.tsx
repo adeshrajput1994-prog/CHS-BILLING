@@ -21,7 +21,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
-  { name: "Home", icon: Home, path: "/" },
+  { name: "Dashboard", icon: Home, path: "/" }, // Changed 'Home' to 'Dashboard'
   { name: "Farmers", icon: Users, path: "/farmers" },
   { name: "Items", icon: Package, path: "/items" },
   { name: "Sale Invoices", icon: ShoppingCart, path: "/sale" }, // Updated name and path
@@ -38,7 +38,7 @@ const navItems = [
 const SidebarContent = () => (
   <ScrollArea className="h-full py-4">
     <div className="px-3 py-2">
-      <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">Vyapar</h2>
+      <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">CHS BILLING</h2> {/* Changed 'Vyapar' to 'CHS BILLING' */}
       <div className="space-y-1">
         {navItems.map((item) => (
           <NavLink
