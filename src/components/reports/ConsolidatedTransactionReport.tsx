@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Printer, Share2 } from "lucide-react";
+import { Printer, Share2, FileSpreadsheet, FileText as FileTextIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showError } from "@/utils/toast";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
@@ -198,7 +198,7 @@ const ConsolidatedTransactionReport: React.FC = () => {
               <td style="border: 1px solid #ddd; padding: 8px;">${t(entry.type, entry.type === "Sale" ? "बिक्री" : entry.type === "Purchase" ? "खरीद" : entry.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.reference}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.farmerName}</td>
-              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${entry.amount.toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right; color: ${entry.type === "Sale" || entry.type === "Payment In" ? "green" : "red"};">₹ ${entry.amount.toFixed(2)}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${t(entry.method || '-', entry.method === "Cash" ? "नकद" : entry.method === "Bank" ? "बैंक" : "-")}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${entry.details}</td>
             </tr>
@@ -283,7 +283,9 @@ const ConsolidatedTransactionReport: React.FC = () => {
                     <TableCell>{t(entry.type, entry.type === "Sale" ? "बिक्री" : entry.type === "Purchase" ? "खरीद" : entry.type === "Payment In" ? "भुगतान अंदर" : "भुगतान बाहर")}</TableCell>
                     <TableCell>{entry.reference}</TableCell>
                     <TableCell>{entry.farmerName}</TableCell>
-                    <TableCell className="text-right">{entry.amount.toFixed(2)}</TableCell>
+                    <TableCell className={`text-right ${entry.type === "Sale" || entry.type === "Payment In" ? "text-green-600" : "text-red-600"}`}>
+                      {entry.amount.toFixed(2)}
+                    </TableCell>
                     <TableCell>{t(entry.method || '-', entry.method === "Cash" ? "नकद" : entry.method === "Bank" ? "बैंक" : "-")}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{entry.details}</TableCell>
                   </TableRow>

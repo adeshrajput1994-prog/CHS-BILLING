@@ -157,7 +157,7 @@ const FarmerDueBalanceReport: React.FC = () => {
                     </TableCell>
                     <TableCell>{fb.farmer.farmerName}</TableCell>
                     <TableCell>{fb.farmer.village}</TableCell>
-                    <TableCell className={`text-right font-semibold ${fb.balance >= 0 ? "text-red-600" : "text-green-600"}`}>
+                    <TableCell className={`text-right font-semibold ${fb.balance > 0 ? "text-green-600" : "text-red-600"}`}>
                       ₹ {fb.balance.toFixed(2)}
                     </TableCell>
                   </TableRow>

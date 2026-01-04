@@ -643,7 +643,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
               )}
 
               <Label className="text-right font-bold">{t("DUE", "देय")}</Label>
-              <Input value={`₹ ${dueAmount.toFixed(2)}`} readOnly disabled className={`bg-gray-100 dark:bg-gray-800 text-2xl font-bold ${dueAmount >= 0 ? "text-red-600" : "text-green-600"}`} />
+              <Input value={`₹ ${dueAmount.toFixed(2)}`} readOnly disabled className={`bg-gray-100 dark:bg-gray-800 text-2xl font-bold ${dueAmount > 0 ? "text-green-600" : "text-red-600"}`} />
             </div>
             <Button type="submit" className="w-full mt-6 print-hide">
               {initialData ? t("Update Sales Invoice", "बिक्री चालान अपडेट करें") : t("Create Sales Invoice", "बिक्री चालान बनाएँ")}

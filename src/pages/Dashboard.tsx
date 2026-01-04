@@ -145,7 +145,7 @@ const Dashboard = () => {
             <Banknote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${overallNetBusinessBalance >= 0 ? "text-red-600" : "text-green-600"}`}>
+            <div className={`text-2xl font-bold ${overallNetBusinessBalance > 0 ? "text-green-600" : "text-red-600"}`}>
               ₹ {overallNetBusinessBalance.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">

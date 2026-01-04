@@ -237,7 +237,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
           {selectedFarmer && (
             <div className="flex justify-between items-center p-3 bg-muted rounded-md">
               <p className="text-sm font-medium">{t(`Current Due Balance for ${selectedFarmer.farmerName}:`, `${selectedFarmer.farmerName} के लिए वर्तमान देय शेष:`)}</p>
-              <p className={`text-lg font-semibold ${currentFarmerDue >= 0 ? "text-red-600" : "text-green-600"}`}>
+              <p className={`text-lg font-semibold ${currentFarmerDue > 0 ? "text-green-600" : "text-red-600"}`}>
                 ₹ {currentFarmerDue.toFixed(2)}
               </p>
             </div>

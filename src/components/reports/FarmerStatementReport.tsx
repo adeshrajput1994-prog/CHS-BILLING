@@ -261,7 +261,7 @@ const FarmerStatementReport: React.FC = () => {
                         <TableCell>{entry.description}</TableCell>
                         <TableCell className="text-right">{entry.debit.toFixed(2)}</TableCell>
                         <TableCell className="text-right">{entry.credit.toFixed(2)}</TableCell>
-                        <TableCell className={`text-right font-semibold ${entry.balance >= 0 ? "text-red-600" : "text-green-600"}`}>
+                        <TableCell className={`text-right font-semibold ${entry.balance > 0 ? "text-green-600" : "text-red-600"}`}>
                           {entry.balance.toFixed(2)}
                         </TableCell>
                       </TableRow>
@@ -273,7 +273,7 @@ const FarmerStatementReport: React.FC = () => {
             {statement.length > 0 && (
               <div className="flex justify-end items-center mt-4 p-3 bg-muted rounded-md">
                 <p className="text-lg font-bold mr-4">{t("Net Balance:", "शुद्ध शेष:")}</p>
-                <p className={`text-xl font-bold ${netBalance >= 0 ? "text-red-600" : "text-green-600"}`}>
+                <p className={`text-xl font-bold ${netBalance > 0 ? "text-green-600" : "text-red-600"}`}>
                   ₹ {netBalance.toFixed(2)}
                 </p>
               </div>

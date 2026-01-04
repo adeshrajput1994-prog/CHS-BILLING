@@ -70,7 +70,7 @@ const SalesInvoiceTable: React.FC<SalesInvoiceTableProps> = ({ invoices, onView,
                 <TableCell>{invoice.farmer.farmerName}</TableCell>
                 <TableCell>₹ {Number(invoice.totalAmount).toFixed(2)}</TableCell>
                 <TableCell>₹ {Number(invoice.advance).toFixed(2)}</TableCell>
-                <TableCell className={Number(invoice.due) >= 0 ? "text-red-600" : "text-green-600"}>
+                <TableCell className={Number(invoice.due) > 0 ? "text-green-600" : "text-red-600"}>
                   ₹ {Number(invoice.due).toFixed(2)}
                 </TableCell>
                 <TableCell className="flex justify-center space-x-2">
