@@ -6,7 +6,7 @@ export interface ItemIdGenerator {
   id: string;
 }
 
-// Helper function to get the next farmer ID (e.g., F001, F002)
+// Helper function to get the next farmer ID (e.g., F1, F2)
 export const getNextFarmerId = (currentFarmers: FarmerIdGenerator[]) => {
   let maxIdNum = 0;
   currentFarmers.forEach(farmer => {
@@ -18,7 +18,8 @@ export const getNextFarmerId = (currentFarmers: FarmerIdGenerator[]) => {
       }
     }
   });
-  return `F${String(maxIdNum + 1).padStart(3, '0')}`;
+  // Removed padStart to make IDs simpler (e.g., F1, F2 instead of F001, F002)
+  return `F${maxIdNum + 1}`;
 };
 
 // Helper function to get the next item ID (e.g., I001, I002)
