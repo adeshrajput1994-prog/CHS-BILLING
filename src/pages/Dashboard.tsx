@@ -11,6 +11,7 @@ import { Banknote, ArrowUpCircle, ArrowDownCircle, Package, Factory, CalendarDay
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import DashboardSalesPurchasesChart from "@/components/DashboardSalesPurchasesChart"; // Import the new chart component
 
 interface Farmer {
   id: string;
@@ -240,6 +241,9 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sales & Purchases Chart */}
+      <DashboardSalesPurchasesChart />
 
       {/* Major Payments Section */}
       <Card>
