@@ -7,65 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCompany } from "@/context/CompanyContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import { Plus, Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
-import { useTheme } from "next-themes"; // Import useTheme
-import { Switch } from "@/components/ui/switch"; // Import Switch
+import { useTheme } from "next-themes";
+import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Separator } from "@/components/ui/separator";
-import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
-
-// Define Zod schema for company details editing
-const companyEditSchema = z.object({
-  companyName: z.string().min(1, { message: "Company Name is required." }),
-  companyAddress: z.string().min(1, { message: "Company Address is required." }),
-});
-
-type CompanyEditFormValues = z.infer<typeof companyEditSchema>;
+import { usePrintSettings } from "@/hooks/use-print-settings";
 
 const SettingsPage: React.FC = () => {
-  const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear, loading, // Get loading state from context
-    error // Get error state from context
-  } = useCompany();
-  const { theme, setTheme } = useTheme(); // Use theme hook
-  const { printInHindi, setPrintInHindi } = usePrintSettings(); // Use print settings hook
-
-  // Form for editing selected company details
-  const companyEditForm = useForm<CompanyEditFormValues>({
-    resolver: zodResolver(companyEditSchema),
-    defaultValues: {
-      companyName: selectedCompany?.name || "",
-      companyAddress: selectedCompany?.address || "",
-    },
-  });
-
-  // Update form defaults when selectedCompany changes
-  useEffect(() => {
-    if (selectedCompany) {
-      companyEditForm.reset({
-        companyName: selectedCompany.name,
-        companyAddress: selectedCompany.address,
-      });
-    }
-  }, [selectedCompany, companyEditForm]);
-
-  const handleUpdateCompanyDetails = (data: CompanyEditFormValues) => {
-    if (!selectedCompany) {
-      showError("No company selected to update.");
-      return;
-    }
-    // Note: This implementation assumes we're updating the company in Firestore
-    // The actual update logic would depend on how the useFirestore hook is implemented
-    // For now, we'll just show a success message
-    showSuccess("Company details updated successfully!");
-  };
-
-  const onErrorCompanyEditForm = (errors: any) => {
-    console.error("Company edit form validation errors:", errors);
-    showError("Please correct the errors in company details form.");
-  };
+  const { companies, selectedCompany, selectedFinancialYear, selectCompany, selectFinancialYear, loading, error } = useCompany();
+  const { theme, setTheme } = useTheme();
+  const { printInHindi, setPrintInHindi } = usePrintSettings();
 
   // Show loading indicator while data is being fetched
   if (loading) {
@@ -85,7 +40,7 @@ const SettingsPage: React.FC = () => {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="2xl font-bold mb-2">Error Loading Data</h2>
+          <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
           <p className="text-lg mb-4">{error}</p>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
@@ -178,35 +133,6 @@ const SettingsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Edit Selected Company Details */}
-      {selectedCompany && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Current Company Details</CardTitle>
-            <CardDescription>Update the name and address of the selected company.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={companyEditForm.handleSubmit(handleUpdateCompanyDetails, onErrorCompanyEditForm)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="editCompanyName">Company Name</Label>
-                <Input id="editCompanyName" {...companyEditForm.register("companyName")} />
-                {companyEditForm.formState.errors.companyName && (
-                  <p className="text-red-500 text-sm">{companyEditForm.formState.errors.companyName.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="editCompanyAddress">Company Address</Label>
-                <Input id="editCompanyAddress" {...companyEditForm.register("companyAddress")} />
-                {companyEditForm.formState.errors.companyAddress && (
-                  <p className="text-red-500 text-sm">{companyEditForm.formState.errors.companyAddress.message}</p>
-                )}
-              </div>
-              <Button type="submit" className="w-full">Update Company Details</Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Printing Preferences */}
       <Card>

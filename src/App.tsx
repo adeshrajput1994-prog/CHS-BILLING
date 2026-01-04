@@ -7,20 +7,20 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import FarmersPage from "./pages/FarmersPage";
 import ItemsPage from "./pages/ItemsPage";
-import PurchaseInvoicesPage from "./pages/PurchaseInvoicesPage"; // Import the new Purchase Invoices Page
-import SalesInvoicesPage from "./pages/SalesInvoicesPage"; // Import the new Sales Invoices Page
+import PurchaseInvoicesPage from "./pages/PurchaseInvoicesPage";
+import SalesInvoicesPage from "./pages/SalesInvoicesPage";
 import ManufacturingExpensesPage from "./pages/ManufacturingExpensesPage";
 import CashBankPage from "./pages/CashBankPage";
 import ReportsPage from "./pages/ReportsPage";
 import SyncBackupPage from "./pages/SyncBackupPage";
 import UtilitiesPage from "./pages/UtilitiesPage";
 import SettingsPage from "./pages/SettingsPage";
-import CompanySettingsPage from "./pages/CompanySettingsPage"; // Import the new CompanySettingsPage
+import CompanySettingsPage from "./pages/CompanySettingsPage";
 import NotFound from "./pages/NotFound";
-import { CompanyProvider } from "./context/CompanyContext"; // Import CompanyProvider
-import { ThemeProvider } from "./components/ThemeProvider"; // Import ThemeProvider
-import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore"; // Import the migration utility
-import React, { useState } from "react"; // Import React and useState
+import { CompanyProvider } from "./context/CompanyContext";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore";
+import React, { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +31,6 @@ const App = () => {
     if (!migrationAttempted) {
       await migrateLocalStorageToFirestore();
       setMigrationAttempted(true);
-      // Optionally, you might want to refresh the page after migration to ensure all components re-fetch data from Firestore
-      // setTimeout(() => window.location.reload(), 2000);
     }
   };
 
