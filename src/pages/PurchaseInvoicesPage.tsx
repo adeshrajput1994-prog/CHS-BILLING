@@ -10,6 +10,7 @@ import { showSuccess, showError } from "@/utils/toast"; // Import showError
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 // Helper function to get the next purchase number (e.g., P-YYYYMMDD-001)
 const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
@@ -32,8 +33,10 @@ const getNextPurchaseNumber = (currentInvoices: CompletePurchaseInvoice[]) => {
 
 const PurchaseInvoicesPage: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
   
-  // Replace localStorage state with useFirestore hook for purchase invoices
+  // Pass currentCompanyId to useFirestore hook for purchase invoices
   const { 
     data: invoices, 
     loading: loadingInvoices, 
@@ -41,7 +44,7 @@ const PurchaseInvoicesPage: React.FC = () => {
     addDocument: addInvoiceDocument, 
     updateDocument: updateInvoiceDocument, 
     deleteDocument: deleteInvoiceDocument 
-  } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
 
   // Fetch items data for stock management
   const { 
@@ -49,7 +52,7 @@ const PurchaseInvoicesPage: React.FC = () => {
     loading: loadingItems, 
     error: itemsError, 
     updateDocument: updateItemDocument 
-  } = useFirestore<GlobalItem>('items');
+  } = useFirestore<GlobalItem>('items', currentCompanyId);
 
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit' | 'view'>('list');
   const [editingInvoice, setEditingInvoice] = useState<CompletePurchaseInvoice | null>(null);
@@ -60,8 +63,6 @@ const PurchaseInvoicesPage: React.FC = () => {
   const [currentPurchaseDate, setCurrentPurchaseDate] = useState("");
   const [currentPurchaseTime, setCurrentPurchaseTime] = useState("");
 
-  // No need for localStorage useEffects anymore, useFirestore handles fetching and updates
-
   const generateNewInvoiceDetails = () => {
     const newPurchaseNo = getNextPurchaseNumber(invoices);
     const today = new Date();
@@ -70,7 +71,12 @@ const PurchaseInvoicesPage: React.FC = () => {
     setCurrentPurchaseTime(today.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
   };
 
-  const handleAddInvoice = async (newInvoiceData: CompletePurchaseInvoice) => {
+  const handleAddInvoice = async (newInvoiceData: Omit<CompletePurchaseInvoice, 'id'> & { id?: string }) => {
+    if (!currentCompanyId) {
+      showError("Please select a company before adding purchase invoices.");
+      return;
+    }
+    // companyId is automatically added by useFirestore hook
     const addedId = await addInvoiceDocument(newInvoiceData);
     if (addedId) {
       showSuccess("Purchase Invoice added successfully!");
@@ -161,6 +167,14 @@ const PurchaseInvoicesPage: React.FC = () => {
 
   if (itemsError) {
     return <div className="text-center py-8 text-lg text-red-500">Error loading items: {itemsError}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <div className="text-center py-8 text-lg">
+        Please select a company from Company Settings to view purchase invoices.
+      </div>
+    );
   }
 
   return (

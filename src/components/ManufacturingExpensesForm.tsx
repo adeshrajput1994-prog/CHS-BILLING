@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm"; // Import the interface
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 // Define the Zod schema for manufacturing expenses
 const manufacturingExpensesSchema = z.object({
@@ -36,8 +37,11 @@ const manufacturingExpensesSchema = z.object({
 type ManufacturingExpensesFormValues = z.infer<typeof manufacturingExpensesSchema>;
 
 const ManufacturingExpensesForm: React.FC = () => {
-  // Fetch purchase invoices using useFirestore
-  const { data: purchaseInvoices, loading: loadingPurchaseInvoices, error: purchaseInvoicesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Fetch purchase invoices using useFirestore, filtered by companyId
+  const { data: purchaseInvoices, loading: loadingPurchaseInvoices, error: purchaseInvoicesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
   // Removed useFirestore for 'manufacturingExpenses' as we are no longer saving.
 
   const form = useForm<ManufacturingExpensesFormValues>({

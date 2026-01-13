@@ -23,6 +23,7 @@ import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface ConsolidatedEntry {
   date: string;
@@ -37,11 +38,13 @@ interface ConsolidatedEntry {
 
 const ConsolidatedTransactionReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
   
-  // Fetch data using useFirestore hook
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
+  // Fetch data using useFirestore hook, passing currentCompanyId
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -222,6 +225,24 @@ const ConsolidatedTransactionReport: React.FC = () => {
 
   if (hasError) {
     return <div className="text-center py-8 text-lg text-red-500">Error loading consolidated transaction data: {hasError}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">{t("Consolidated Transaction Report", "समग्र लेनदेन रिपोर्ट")}</CardTitle>
+            <CardDescription>{t("View all sales, purchases, and cash/bank transactions in one place.", "सभी बिक्री, खरीद और नकद/बैंक लेनदेन एक ही स्थान पर देखें।")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Please select a company from Company Settings to view consolidated transactions.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

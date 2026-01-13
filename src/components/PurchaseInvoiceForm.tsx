@@ -33,6 +33,7 @@ interface Farmer {
   accountName: string;
   accountNo: string;
   ifscCode: string;
+  companyId: string;
 }
 
 // Zod schema for a single item within the purchase invoice
@@ -77,8 +78,8 @@ type PurchaseInvoiceFormValues = z.infer<typeof purchaseInvoiceSchema>;
 // Define a type for the complete Purchase Invoice
 export interface CompletePurchaseInvoice {
   // Exported for use in parent components
-  id: string;
-  purchaseNo: string;
+  id: string; // This will be Firestore's doc.id
+  purchaseNo: string; // This is the business-specific purchase number
   purchaseDate: string;
   purchaseTime: string;
   farmer: Farmer;
@@ -86,11 +87,12 @@ export interface CompletePurchaseInvoice {
   totalAmount: number;
   advance: number;
   due: number;
+  companyId: string;
 }
 
 interface PurchaseInvoiceFormProps {
   initialData?: CompletePurchaseInvoice | null;
-  onSave: (invoice: CompletePurchaseInvoice) => void;
+  onSave: (invoice: Omit<CompletePurchaseInvoice, 'id'> & { id?: string }) => void; // Modified onSave signature
   onCancel: () => void;
   currentPurchaseNo: string;
   currentPurchaseDate: string;
@@ -105,12 +107,13 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
   currentPurchaseDate,
   currentPurchaseTime,
 }) => {
-  const { selectedCompany } = useCompany(); // Use company context
+  const { selectedCompany, getCurrentCompanyId } = useCompany(); // Use company context
+  const currentCompanyId = getCurrentCompanyId();
   const { printInHindi } = usePrintSettings(); // Use print settings hook
 
   // Fetch data using useFirestore
-  const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers');
-  const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items');
+  const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items', currentCompanyId);
 
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
@@ -277,8 +280,8 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         return;
       }
 
-      const completeInvoice: CompletePurchaseInvoice = {
-        id: initialData?.id || currentPurchaseNo, // Use existing ID if editing, otherwise new one
+      const completeInvoice: Omit<CompletePurchaseInvoice, 'id'> & { id?: string } = {
+        id: initialData?.id, // Pass existing ID if editing, otherwise it will be undefined for new
         purchaseNo: currentPurchaseNo,
         purchaseDate: currentPurchaseDate,
         purchaseTime: currentPurchaseTime,
@@ -287,6 +290,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
         totalAmount: totalAmount,
         advance: advanceAmount,
         due: dueAmount,
+        companyId: currentCompanyId || '', // Ensure companyId is passed
       };
 
       // Handle stock update
@@ -376,6 +380,30 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 
   if (loadingFarmers || loadingItems) {
     return <div className="text-center py-8 text-lg">Loading farmers and items...</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <div className="space-y-6 p-4">
+        <div className="flex justify-between items-center print-hide">
+          <h1 className="text-3xl font-bold">{t("Create Purchase Invoice", "खरीद चालान बनाएँ")}</h1>
+          <div className="flex space-x-2">
+            <Button type="button" variant="outline" onClick={onCancel}>{t("Cancel", "रद्द करें")}</Button>
+          </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("Create Purchase Invoice", "खरीद चालान बनाएँ")}</CardTitle>
+            <CardDescription>{t("Add a new purchase invoice.", "नया खरीद चालान जोड़ें।")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+              <p className="text-red-600 text-sm">⚠️ Please select a company first before creating purchase invoices.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

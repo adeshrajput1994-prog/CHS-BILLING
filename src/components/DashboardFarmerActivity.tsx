@@ -8,11 +8,13 @@ import { useFirestore } from "@/hooks/use-firestore";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { CashBankTransaction, calculateFarmerDueBalances } from "@/utils/balanceCalculations";
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface Farmer {
   id: string;
   farmerName: string;
   village: string;
+  companyId: string;
 }
 
 interface FarmerActivitySummary {
@@ -23,10 +25,14 @@ interface FarmerActivitySummary {
 }
 
 const DashboardFarmerActivity: React.FC = () => {
-  const { data: farmers, loading: loadingFarmers, error: farmersError } = useFirestore<Farmer>('farmers');
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Pass currentCompanyId to useFirestore
+  const { data: farmers, loading: loadingFarmers, error: farmersError } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
 
   const farmerActivitySummaries = useMemo(() => {
     const balancesMap = calculateFarmerDueBalances(
@@ -67,6 +73,22 @@ const DashboardFarmerActivity: React.FC = () => {
 
   if (farmersError || salesError || purchasesError || cashBankError) {
     return <div className="text-center py-4 text-sm text-red-500">Error loading farmer data.</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Farmer Activity</CardTitle>
+          <CardDescription>Farmers with highest outstanding balances or recent activity.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            Please select a company from Company Settings to view farmer activity.
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

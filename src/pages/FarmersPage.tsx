@@ -27,23 +27,30 @@ const FarmersPage = () => {
   const { getCurrentCompanyId } = useCompany();
   const currentCompanyId = getCurrentCompanyId();
   
-  const { data: farmers, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Farmer>('farmers');
+  // Pass currentCompanyId to useFirestore
+  const { data: farmers, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Farmer>('farmers', currentCompanyId);
   
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Filter farmers by current company
-  const companyFarmers = farmers.filter(farmer => farmer.companyId === currentCompanyId);
+  // No need for manual filtering by companyId here, useFirestore handles it.
+  const filteredFarmers = farmers.filter(farmer =>
+    farmer.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    farmer.fathersName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    farmer.village.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    farmer.mobileNo.includes(searchTerm) ||
+    farmer.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleAddFarmer = async (newFarmerData: Omit<Farmer, 'id'>) => {
+  const handleAddFarmer = async (newFarmerData: Omit<Farmer, 'id' | 'companyId'>) => {
     if (!currentCompanyId) {
       showError("Please select a company before adding farmers.");
       return;
     }
     
-    const farmerWithCompany = { ...newFarmerData, companyId: currentCompanyId };
-    const addedId = await addDocument(farmerWithCompany);
+    // companyId is automatically added by useFirestore hook
+    const addedId = await addDocument(newFarmerData);
     if (addedId) {
       setViewMode('list');
     }
@@ -78,15 +85,6 @@ const FarmersPage = () => {
     window.print();
     document.body.classList.remove('print-mode');
   };
-
-  // Filter farmers based on search term
-  const filteredFarmers = companyFarmers.filter(farmer =>
-    farmer.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    farmer.fathersName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    farmer.village.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    farmer.mobileNo.includes(searchTerm) ||
-    farmer.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) {
     return <div className="text-center py-8 text-lg">Loading farmers...</div>;

@@ -16,6 +16,7 @@ import { useFirestore } from "@/hooks/use-firestore";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface ChartData {
   date: string;
@@ -24,8 +25,12 @@ interface ChartData {
 }
 
 const DashboardSalesPurchasesChart: React.FC = () => {
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Pass currentCompanyId to useFirestore
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
 
   const chartData = useMemo(() => {
     const today = new Date();
@@ -66,11 +71,27 @@ const DashboardSalesPurchasesChart: React.FC = () => {
   }, [salesInvoices, purchaseInvoices]);
 
   if (loadingSales || loadingPurchases) {
-    return <div className="text-center py-8 text-lg">Loading chart data...</div>;
+    return <div className="text-center py-4 text-sm text-muted-foreground">Loading chart data...</div>;
   }
 
   if (salesError || purchasesError) {
-    return <div className="text-center py-8 text-lg text-red-500">Error loading chart data.</div>;
+    return <div className="text-center py-4 text-sm text-red-500">Error loading chart data.</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Daily Sales & Purchases</CardTitle>
+          <CardDescription>Last 7 days overview</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            Please select a company from Company Settings to view sales and purchases chart.
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

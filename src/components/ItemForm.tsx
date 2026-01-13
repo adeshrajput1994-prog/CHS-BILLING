@@ -36,7 +36,7 @@ export interface Item {
 
 interface ItemFormProps {
   initialData?: Item | null;
-  onSave: (item: ItemFormValues & { id?: string; companyId: string }) => void;
+  onSave: (item: ItemFormValues & { id?: string }) => void; // Removed companyId from signature
   onCancel: () => void;
 }
 
@@ -72,9 +72,10 @@ const ItemForm: React.FC<ItemFormProps> = ({ initialData, onSave, onCancel }) =>
       return;
     }
     
+    // companyId is now handled by useFirestore hook
     const itemToSave = initialData 
-      ? { ...data, id: initialData.id, companyId: currentCompanyId }
-      : { ...data, companyId: currentCompanyId };
+      ? { ...data, id: initialData.id }
+      : { ...data };
       
     onSave(itemToSave);
     showSuccess(`Item ${initialData ? "updated" : "added"} successfully!`);

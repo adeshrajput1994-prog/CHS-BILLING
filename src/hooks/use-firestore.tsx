@@ -27,7 +27,8 @@ interface FirestoreHook<T> {
   deleteDocument: (id: string) => Promise<boolean>;
 }
 
-export function useFirestore<T extends { id?: string }>(collectionName: string): FirestoreHook<T> {
+// Extend T to ensure it has an optional companyId
+export function useFirestore<T extends { id?: string; companyId?: string }>(collectionName: string, companyId: string | null): FirestoreHook<T> {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,9 +36,21 @@ export function useFirestore<T extends { id?: string }>(collectionName: string):
   const fetchData = useCallback(async (conditions?: { field: string; operator: "==" | "<" | ">" | "<=" | ">="; value: any }[]) => {
     setLoading(true);
     setError(null);
+    
+    if (!companyId && collectionName !== 'companies') { // If no company selected, and not fetching companies themselves, return empty
+      setData([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       const colRef = collection(db, collectionName);
       let q = query(colRef);
+
+      // Always filter by companyId if it's provided and not fetching the 'companies' collection itself
+      if (companyId && collectionName !== 'companies') {
+        q = query(q, where("companyId", "==", companyId));
+      }
 
       if (conditions && conditions.length > 0) {
         conditions.forEach(condition => {
@@ -58,14 +71,21 @@ export function useFirestore<T extends { id?: string }>(collectionName: string):
     } finally {
       setLoading(false);
     }
-  }, [collectionName]);
+  }, [collectionName, companyId]); // Depend on companyId to re-fetch when it changes
 
   const addDocument = useCallback(async (document: Omit<T, "id">): Promise<string | null> => {
     setLoading(true);
     setError(null);
     try {
       const colRef = collection(db, collectionName);
-      const docRef = await addDoc(colRef, { ...document, createdAt: serverTimestamp() });
+      const docToAdd = { ...document, createdAt: serverTimestamp() };
+      
+      // Automatically add companyId if available and not already present
+      if (companyId && !docToAdd.companyId && collectionName !== 'companies') {
+        (docToAdd as T).companyId = companyId;
+      }
+
+      const docRef = await addDoc(colRef, docToAdd);
       showSuccess(`${collectionName.slice(0, -1)} added successfully!`);
       fetchData(); // Refresh data after adding
       return docRef.id;
@@ -77,14 +97,21 @@ export function useFirestore<T extends { id?: string }>(collectionName: string):
     } finally {
       setLoading(false);
     }
-  }, [collectionName, fetchData]);
+  }, [collectionName, companyId, fetchData]);
 
   const updateDocument = useCallback(async (id: string, document: Partial<T>): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
       const docRef = doc(db, collectionName, id);
-      await updateDoc(docRef, { ...document, updatedAt: serverTimestamp() });
+      const docToUpdate = { ...document, updatedAt: serverTimestamp() };
+
+      // Ensure companyId is not accidentally removed or changed during update
+      if (companyId && !docToUpdate.companyId && collectionName !== 'companies') {
+        (docToUpdate as T).companyId = companyId;
+      }
+
+      await updateDoc(docRef, docToUpdate);
       showSuccess(`${collectionName.slice(0, -1)} updated successfully!`);
       fetchData(); // Refresh data after updating
       return true;
@@ -96,7 +123,7 @@ export function useFirestore<T extends { id?: string }>(collectionName: string):
     } finally {
       setLoading(false);
     }
-  }, [collectionName, fetchData]);
+  }, [collectionName, companyId, fetchData]);
 
   const deleteDocument = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
@@ -118,7 +145,7 @@ export function useFirestore<T extends { id?: string }>(collectionName: string):
   }, [collectionName, fetchData]);
 
   useEffect(() => {
-    fetchData(); // Initial fetch when component mounts
+    fetchData(); // Initial fetch when component mounts or companyId changes
   }, [fetchData]);
 
   return { data, loading, error, fetchData, addDocument, updateDocument, deleteDocument };

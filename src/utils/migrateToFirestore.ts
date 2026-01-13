@@ -133,24 +133,53 @@ export const migrateLocalStorageToFirestore = async () => {
 
         if (Array.isArray(parsedData) && parsedData.length > 0) {
           for (const item of parsedData) {
-            // Add companyId to the data
+            // Add companyId to the data if not already present
             const itemWithCompany = {
               ...item,
               companyId: item.companyId || defaultCompanyId
             };
 
-            const q = query(collection(db, firestoreCollectionName), where("id", "==", item.id));
+            // Check if document with this ID already exists in Firestore
+            // Note: This assumes 'id' in localStorage data is meant to be the Firestore document ID.
+            // For new documents, Firestore generates its own ID. For migration, we'll use the localStorage 'id' as a field.
+            // We'll query by a unique field like 'id' (if it's truly unique and not Firestore's doc.id) or 'invoiceNo'/'purchaseNo'.
+            // For simplicity, during migration, we'll just add if not found by a specific field.
+            // For 'companies', 'farmers', 'items', 'cashBankTransactions', 'id' is usually unique.
+            // For invoices, 'invoiceNo'/'purchaseNo' is the business unique identifier.
+
+            let queryField = 'id';
+            if (firestoreCollectionName === 'salesInvoices') queryField = 'invoiceNo';
+            if (firestoreCollectionName === 'purchaseInvoices') queryField = 'purchaseNo';
+            
+            const q = query(collection(db, firestoreCollectionName), where(queryField, "==", item[queryField]));
             const querySnapshot = await getDocs(q);
 
             if (querySnapshot.empty) {
               await addDoc(collection(db, firestoreCollectionName), itemWithCompany);
             } else {
-              console.log(`Document with ID ${item.id} already exists in ${firestoreCollectionName}. Skipping.`);
+              console.log(`Document with ${queryField} ${item[queryField]} already exists in ${firestoreCollectionName}. Skipping.`);
             }
           }
           showSuccess(`Migrated ${parsedData.length} entries for ${localStorageKey}.`);
         } else if (typeof parsedData === 'object' && parsedData !== null) {
-          console.warn(`Skipping non-array data for ${localStorageKey}. Only arrays are migrated.`);
+          // Handle single objects like 'manufacturingExpenses' if they exist
+          if (localStorageKey === 'manufacturingExpenses') {
+            const expenseWithCompany = {
+              ...parsedData,
+              companyId: parsedData.companyId || defaultCompanyId
+            };
+            // Check if a manufacturing expense for this company already exists
+            const q = query(collection(db, firestoreCollectionName), where("companyId", "==", expenseWithCompany.companyId));
+            const querySnapshot = await getDocs(q);
+            if (querySnapshot.empty) {
+              await addDoc(collection(db, firestoreCollectionName), expenseWithCompany);
+            } else {
+              console.log(`Manufacturing expense for company ${expenseWithCompany.companyId} already exists. Skipping.`);
+            }
+            showSuccess(`Migrated manufacturing expenses for ${localStorageKey}.`);
+          } else {
+            console.warn(`Skipping non-array data for ${localStorageKey}. Only arrays and specific objects are migrated.`);
+          }
         }
       } catch (error) {
         console.error(`Error migrating ${localStorageKey} to Firestore:`, error);

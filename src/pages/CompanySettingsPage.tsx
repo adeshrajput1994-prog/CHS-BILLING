@@ -31,11 +31,12 @@ interface Company {
 
 const CompanySettingsPage: React.FC = () => {
   const { companies, selectedCompany, selectedFinancialYear, addCompany, selectCompany, selectFinancialYear, loading, error } = useCompany();
-  const { deleteDocument } = useFirestore<Company>('companies');
+  const { updateDocument, deleteDocument } = useFirestore<Company>('companies', null); // Pass null for companyId as this is for managing companies themselves
 
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyAddress, setNewCompanyAddress] = useState("");
   const [newCompanyStartYear, setNewCompanyStartYear] = useState(new Date().getFullYear());
+  const [newFinancialYearStart, setNewFinancialYearStart] = useState(new Date().getFullYear());
 
   const handleAddCompany = () => {
     if (newCompanyName.trim() === "" || newCompanyAddress.trim() === "") {
@@ -46,6 +47,30 @@ const CompanySettingsPage: React.FC = () => {
     setNewCompanyName("");
     setNewCompanyAddress("");
     setNewCompanyStartYear(new Date().getFullYear());
+  };
+
+  const handleAddFinancialYear = async () => {
+    if (!selectedCompany) {
+      showError("Please select a company first.");
+      return;
+    }
+    const newYearString = `${newFinancialYearStart}-${newFinancialYearStart + 1}`;
+    if (selectedCompany.financialYears.includes(newYearString)) {
+      showError(`Financial year ${newYearString} already exists for this company.`);
+      return;
+    }
+
+    const updatedFinancialYears = [...selectedCompany.financialYears, newYearString].sort();
+    try {
+      await updateDocument(selectedCompany.id, { financialYears: updatedFinancialYears });
+      showSuccess(`Financial year ${newYearString} added to ${selectedCompany.name}!`);
+      // Re-select company to refresh context with updated financial years
+      selectCompany(selectedCompany.id);
+      setNewFinancialYearStart(new Date().getFullYear());
+    } catch (err) {
+      console.error("Error adding financial year:", err);
+      showError("Failed to add financial year.");
+    }
   };
 
   const handleDeleteCompany = async (companyId: string) => {
@@ -210,8 +235,31 @@ const CompanySettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
+      {selectedCompany && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Financial Year</CardTitle>
+            <CardDescription>Add a new financial year to the selected company.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newFinancialYearStart">Financial Year Start (e.g., 2024 for 2024-2025)</Label>
+              <Input 
+                id="newFinancialYearStart" 
+                type="number" 
+                value={newFinancialYearStart} 
+                onChange={(e) => setNewFinancialYearStart(Number(e.target.value))} 
+              />
+            </div>
+            <Button onClick={handleAddFinancialYear} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Add Financial Year
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Company List with Delete Options */}
-      {companies.length > 1 && (
+      {companies.length > 0 && ( // Show this section if there's at least one company
         <Card>
           <CardHeader>
             <CardTitle>All Companies</CardTitle>
@@ -238,7 +286,7 @@ const CompanySettingsPage: React.FC = () => {
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
+                        <Button variant="destructive" size="sm" disabled={companies.length === 1}> {/* Disable delete if only one company */}
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -252,6 +300,7 @@ const CompanySettingsPage: React.FC = () => {
                             <br />
                             <br />
                             <span className="text-red-600 font-medium">This action cannot be undone.</span> All company data, including financial years and settings, will be permanently deleted.
+                            {companies.length === 1 && <p className="text-orange-500 mt-2">You cannot delete the last remaining company.</p>}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -259,6 +308,7 @@ const CompanySettingsPage: React.FC = () => {
                           <AlertDialogAction 
                             onClick={() => handleDeleteCompany(company.id)}
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={companies.length === 1}
                           >
                             Delete Company
                           </AlertDialogAction>

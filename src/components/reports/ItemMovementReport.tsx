@@ -23,6 +23,7 @@ import { isWithinInterval, parseISO, format } from "date-fns";
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface ItemMovementSummary {
   item: GlobalItem;
@@ -34,11 +35,13 @@ interface ItemMovementSummary {
 
 const ItemMovementReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
   
-  // Fetch data using useFirestore hook
-  const { data: allItems, loading: loadingItems, error: itemsError } = useFirestore<GlobalItem>('items');
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
+  // Fetch data using useFirestore hook, passing currentCompanyId
+  const { data: allItems, loading: loadingItems, error: itemsError } = useFirestore<GlobalItem>('items', currentCompanyId);
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -203,6 +206,24 @@ const ItemMovementReport: React.FC = () => {
 
   if (hasError) {
     return <div className="text-center py-8 text-lg text-red-500">Error loading item movement data: {hasError}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">{t("Item Movement Report", "आइटम आवाजाही रिपोर्ट")}</CardTitle>
+            <CardDescription>{t("Track sales and purchases of items over a selected period.", "चयनित अवधि में आइटमों की बिक्री और खरीद को ट्रैक करें।")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Please select a company from Company Settings to view item movement.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

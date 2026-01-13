@@ -19,20 +19,19 @@ import CompanySettingsPage from "./pages/CompanySettingsPage";
 import NotFound from "./pages/NotFound";
 import { CompanyProvider } from "./context/CompanyContext";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore";
-import React, { useState } from "react";
+// import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore"; // Removed import
+import React, { useState, useEffect } from "react"; // Added useEffect
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [migrationAttempted, setMigrationAttempted] = useState(false);
+  // const [migrationAttempted, setMigrationAttempted] = useState(false); // Removed state
 
-  const handleMigrateData = async () => {
-    if (!migrationAttempted) {
-      await migrateLocalStorageToFirestore();
-      setMigrationAttempted(true);
-    }
-  };
+  // Removed handleMigrateData function
+
+  // Optional: You could add a useEffect here to trigger migration once if needed,
+  // but it's generally better to handle migration as a one-time script or on first run.
+  // For now, we'll assume migration is handled externally or not needed after initial setup.
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -43,17 +42,7 @@ const App = () => {
           <BrowserRouter>
             <CompanyProvider>
               <Layout>
-                {/* Migration Button - Render only if migration hasn't been attempted */}
-                {!migrationAttempted && (
-                  <div className="fixed bottom-4 right-4 z-50">
-                    <button
-                      onClick={handleMigrateData}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full shadow-lg"
-                    >
-                      Migrate Local Data to Cloud
-                    </button>
-                  </div>
-                )}
+                {/* Migration Button removed */}
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/farmers" element={<FarmersPage />} />

@@ -48,7 +48,7 @@ interface Farmer {
 
 interface FarmersFormProps {
   initialData?: Farmer | null;
-  onSave: (farmer: FarmerFormValues & { id?: string; companyId: string }) => void;
+  onSave: (farmer: FarmerFormValues & { id?: string }) => void; // Removed companyId from signature
   onCancel: () => void;
 }
 
@@ -94,9 +94,10 @@ const FarmersForm: React.FC<FarmersFormProps> = ({ initialData, onSave, onCancel
       return;
     }
     
+    // companyId is now handled by useFirestore hook
     const farmerToSave = initialData 
-      ? { ...data, id: initialData.id, companyId: currentCompanyId }
-      : { ...data, companyId: currentCompanyId };
+      ? { ...data, id: initialData.id }
+      : { ...data };
       
     onSave(farmerToSave);
     showSuccess(`Farmer ${initialData ? "updated" : "added"} successfully!`);

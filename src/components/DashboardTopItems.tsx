@@ -8,6 +8,7 @@ import { useFirestore } from "@/hooks/use-firestore";
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 import { Item as GlobalItem } from "@/components/ItemForm";
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface ItemSummary {
   id: string;
@@ -17,9 +18,13 @@ interface ItemSummary {
 }
 
 const DashboardTopItems: React.FC = () => {
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  const { data: allItems, loading: loadingItems, error: itemsError } = useFirestore<GlobalItem>('items');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Pass currentCompanyId to useFirestore
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
+  const { data: allItems, loading: loadingItems, error: itemsError } = useFirestore<GlobalItem>('items', currentCompanyId);
 
   const itemSummaries = useMemo(() => {
     const summaryMap = new Map<string, ItemSummary>();
@@ -72,6 +77,22 @@ const DashboardTopItems: React.FC = () => {
 
   if (salesError || purchasesError || itemsError) {
     return <div className="text-center py-4 text-sm text-red-500">Error loading item data.</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Items Overview</CardTitle>
+          <CardDescription>Most sold and purchased items.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            Please select a company from Company Settings to view top items.
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

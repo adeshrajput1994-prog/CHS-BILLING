@@ -14,6 +14,7 @@ import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hoo
 import DashboardSalesPurchasesChart from "@/components/DashboardSalesPurchasesChart"; // Import the new chart component
 import DashboardTopItems from "@/components/DashboardTopItems"; // Import new Top Items component
 import DashboardFarmerActivity from "@/components/DashboardFarmerActivity"; // Import new Farmer Activity component
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface Farmer {
   id: string;
@@ -25,6 +26,7 @@ interface Farmer {
   accountName: string;
   accountNo: string;
   ifscCode: string;
+  companyId: string;
 }
 
 interface ManufacturingExpense {
@@ -35,15 +37,19 @@ interface ManufacturingExpense {
   khakhoraLabourRate: number;
   loadingLabourRate: number;
   freightRate: number;
+  companyId: string;
 }
 
 const Dashboard = () => {
-  // Fetch data using useFirestore hook
-  const { data: farmers, loading: loadingFarmers, error: farmersError } = useFirestore<Farmer>('farmers');
-  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions');
-  const { data: manufacturingExpenses, loading: loadingManufacturing, error: manufacturingError } = useFirestore<ManufacturingExpense>('manufacturingExpenses');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Fetch data using useFirestore hook, passing currentCompanyId
+  const { data: farmers, loading: loadingFarmers, error: farmersError } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: salesInvoices, loading: loadingSales, error: salesError } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases, error: purchasesError } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
+  const { data: cashBankTransactions, loading: loadingCashBank, error: cashBankError } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
+  const { data: manufacturingExpenses, loading: loadingManufacturing, error: manufacturingError } = useFirestore<ManufacturingExpense>('manufacturingExpenses', currentCompanyId);
 
   const isLoading = loadingFarmers || loadingSales || loadingPurchases || loadingCashBank || loadingManufacturing;
   const hasError = farmersError || salesError || purchasesError || cashBankError || manufacturingError;
@@ -90,6 +96,9 @@ const Dashboard = () => {
       if (invoice.invoiceDate === todayDate) dailySales += Number(invoice.totalAmount);
     });
 
+    // Manufacturing expenses are not aggregated here as they are typically a single entry per company
+    // and the form itself calculates based on all purchase invoices.
+    // If there were multiple manufacturing expense records, this logic would need adjustment.
     manufacturingExpenses.forEach(expense => {
       totalManufacturedKg += Number(expense.manufacturedItemKg);
     });
@@ -132,6 +141,14 @@ const Dashboard = () => {
 
   if (hasError) {
     return <div className="text-center py-8 text-lg text-red-500">Error loading dashboard data: {hasError}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <div className="text-center py-8 text-lg">
+        Please select a company from Company Settings to view the dashboard.
+      </div>
+    );
   }
 
   return (

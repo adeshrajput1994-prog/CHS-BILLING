@@ -24,11 +24,13 @@ import { CompletePurchaseInvoice } from "./PurchaseInvoiceForm";
 import { Share2 } from "lucide-react"; // Import Share2 icon
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 interface Farmer {
   id: string;
   farmerName: string;
   mobileNo?: string; // Added mobileNo for WhatsApp sharing
+  companyId: string;
   // Add other necessary farmer details if needed for display
 }
 
@@ -51,18 +53,20 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 interface CashBankFormProps {
   initialData?: CashBankTransaction | null; // New prop for initial data
-  onSave: (transaction: CashBankTransaction) => void;
+  onSave: (transaction: Omit<CashBankTransaction, 'id'> & { id?: string }) => void; // Modified onSave signature
   onCancel: () => void;
 }
 
 const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCancel }) => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
   
-  // Fetch data using useFirestore
-  const { data: allFarmers, loading: loadingFarmers } = useFirestore<Farmer>('farmers');
-  const { data: salesInvoices, loading: loadingSales } = useFirestore<CompleteSalesInvoice>('salesInvoices');
-  const { data: purchaseInvoices, loading: loadingPurchases } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices');
-  const { data: cashBankTransactions, loading: loadingCashBank } = useFirestore<CashBankTransaction>('cashBankTransactions');
+  // Pass currentCompanyId to useFirestore
+  const { data: allFarmers, loading: loadingFarmers } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: salesInvoices, loading: loadingSales } = useFirestore<CompleteSalesInvoice>('salesInvoices', currentCompanyId);
+  const { data: purchaseInvoices, loading: loadingPurchases } = useFirestore<CompletePurchaseInvoice>('purchaseInvoices', currentCompanyId);
+  const { data: cashBankTransactions, loading: loadingCashBank } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
 
   const [farmerDueBalances, setFarmerDueBalances] = useState<Map<string, number>>(new Map());
 
@@ -127,8 +131,8 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       return;
     }
 
-    const transactionToSave: CashBankTransaction = {
-      id: initialData?.id || `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Use existing ID if editing, otherwise generate new
+    const transactionToSave: Omit<CashBankTransaction, 'id'> & { id?: string } = {
+      id: initialData?.id, // Use existing ID if editing, otherwise it will be undefined for new
       type: data.transactionType,
       farmerId: data.farmerId,
       farmerName: selectedFarmer.farmerName,
@@ -137,10 +141,10 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       remarks: data.remarks,
       date: initialData?.date || new Date().toLocaleDateString('en-CA'), // Keep original date/time if editing
       time: initialData?.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      companyId: currentCompanyId || '', // Ensure companyId is passed
     };
 
     onSave(transactionToSave);
-    showSuccess(`Transaction ${initialData ? "updated" : "recorded"} successfully!`);
     // No form.reset() here, as onSave will trigger a view change in parent
   };
 
@@ -182,6 +186,25 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
 
   if (loadingFarmers || loadingSales || loadingPurchases || loadingCashBank) {
     return <div className="text-center py-8 text-lg">Loading dependent data...</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">{t("Record Payment", "भुगतान दर्ज करें")}</CardTitle>
+          <CardDescription>{t("Add a new payment in or out transaction.", "नया भुगतान अंदर या बाहर लेनदेन जोड़ें।")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+            <p className="text-red-600 text-sm">⚠️ Please select a company first before recording transactions.</p>
+          </div>
+          <div className="flex justify-end space-x-2 print-hide mt-4">
+            <Button type="button" variant="outline" onClick={onCancel}>{t("Cancel", "रद्द करें")}</Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

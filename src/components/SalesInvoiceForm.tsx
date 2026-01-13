@@ -33,6 +33,7 @@ interface Farmer {
   accountName: string;
   accountNo: string;
   ifscCode: string;
+  companyId: string;
 }
 
 // Zod schema for a single item within the sales invoice
@@ -67,8 +68,8 @@ type SalesInvoiceFormValues = z.infer<typeof salesInvoiceSchema>;
 // Define a type for the complete Sales Invoice
 export interface CompleteSalesInvoice {
   // Exported for use in parent components
-  id: string;
-  invoiceNo: string;
+  id: string; // This will be Firestore's doc.id
+  invoiceNo: string; // This is the business-specific invoice number
   invoiceDate: string;
   invoiceTime: string;
   farmer: Farmer;
@@ -76,11 +77,12 @@ export interface CompleteSalesInvoice {
   totalAmount: number;
   advance: number;
   due: number;
+  companyId: string;
 }
 
 interface SalesInvoiceFormProps {
   initialData?: CompleteSalesInvoice | null;
-  onSave: (invoice: CompleteSalesInvoice) => void;
+  onSave: (invoice: Omit<CompleteSalesInvoice, 'id'> & { id?: string }) => void; // Modified onSave signature
   onCancel: () => void;
   currentInvoiceNo: string;
   currentInvoiceDate: string;
@@ -95,12 +97,13 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
   currentInvoiceDate,
   currentInvoiceTime,
 }) => {
-  const { selectedCompany } = useCompany(); // Use company context
+  const { selectedCompany, getCurrentCompanyId } = useCompany(); // Use company context
+  const currentCompanyId = getCurrentCompanyId();
   const { printInHindi } = usePrintSettings(); // Use print settings hook
 
   // Fetch data using useFirestore
-  const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers');
-  const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items');
+  const { data: allFarmers, loading: loadingFarmers, addDocument: addFarmerDocument } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: allItems, loading: loadingItems, updateDocument: updateItemDocument } = useFirestore<GlobalItem>('items', currentCompanyId);
 
   const [salesItems, setSalesItems] = useState<SalesItem[]>(initialData?.items || []);
   const [nextUniqueItemId, setNextUniqueItemId] = useState(
@@ -255,8 +258,8 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         return;
       }
 
-      const completeInvoice: CompleteSalesInvoice = {
-        id: initialData?.id || currentInvoiceNo, // Use existing ID if editing, otherwise new one
+      const completeInvoice: Omit<CompleteSalesInvoice, 'id'> & { id?: string } = {
+        id: initialData?.id, // Pass existing ID if editing, otherwise it will be undefined for new
         invoiceNo: currentInvoiceNo,
         invoiceDate: currentInvoiceDate,
         invoiceTime: currentInvoiceTime,
@@ -265,6 +268,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         totalAmount: totalAmount,
         advance: advanceAmount,
         due: dueAmount,
+        companyId: currentCompanyId || '', // Ensure companyId is passed
       };
 
       // Handle stock update
@@ -354,6 +358,29 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
 
   if (loadingFarmers || loadingItems) {
     return <div className="text-center py-8 text-lg">Loading farmers and items...</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <div className="space-y-6 p-4">
+        <div className="flex justify-end items-center space-x-2 print-hide mb-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {t("Cancel", "रद्द करें")}
+          </Button>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("Create Sales Invoice", "बिक्री चालान बनाएँ")}</CardTitle>
+            <CardDescription>{t("Add a new sales invoice.", "नया बिक्री चालान जोड़ें।")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+              <p className="text-red-600 text-sm">⚠️ Please select a company first before creating sales invoices.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

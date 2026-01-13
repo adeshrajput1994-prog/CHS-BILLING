@@ -16,14 +16,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Separator } from "@/components/ui/separator";
 import { usePrintSettings } from "@/hooks/use-print-settings";
+import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore
+
+interface Company {
+  id: string;
+  name: string;
+  address: string;
+  financialYears: string[];
+}
 
 const SettingsPage: React.FC = () => {
   const { companies, selectedCompany, selectedFinancialYear, selectCompany, selectFinancialYear, loading, error } = useCompany();
   const { theme, setTheme } = useTheme();
   const { printInHindi, setPrintInHindi } = usePrintSettings();
 
+  // Use useFirestore for companies, but pass null for companyId as this page manages all companies
+  const { loading: loadingCompaniesFirestore, error: errorCompaniesFirestore } = useFirestore<Company>('companies', null);
+
   // Show loading indicator while data is being fetched
-  if (loading) {
+  if (loading || loadingCompaniesFirestore) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -35,13 +46,13 @@ const SettingsPage: React.FC = () => {
   }
 
   // Show error message if there was an error fetching data
-  if (error) {
+  if (error || errorCompaniesFirestore) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
-          <p className="text-lg mb-4">{error}</p>
+          <p className="text-lg mb-4">{error || errorCompaniesFirestore}</p>
           <Button onClick={() => window.location.reload()}>Retry</Button>
         </div>
       </div>

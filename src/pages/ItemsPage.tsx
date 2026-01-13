@@ -14,23 +14,27 @@ const ItemsPage = () => {
   const { getCurrentCompanyId } = useCompany();
   const currentCompanyId = getCurrentCompanyId();
   
-  const { data: items, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Item>('items');
+  // Pass currentCompanyId to useFirestore
+  const { data: items, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Item>('items', currentCompanyId);
   
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Filter items by current company
-  const companyItems = items.filter(item => item.companyId === currentCompanyId);
+  // No need for manual filtering by companyId here, useFirestore handles it.
+  const filteredItems = items.filter(item =>
+    item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleAddItem = async (newItemData: Omit<Item, 'id'>) => {
+  const handleAddItem = async (newItemData: Omit<Item, 'id' | 'companyId'>) => {
     if (!currentCompanyId) {
       showError("Please select a company before adding items.");
       return;
     }
     
-    const itemWithCompany = { ...newItemData, companyId: currentCompanyId };
-    const addedId = await addDocument(itemWithCompany);
+    // companyId is automatically added by useFirestore hook
+    const addedId = await addDocument(newItemData);
     if (addedId) {
       setViewMode('list');
     }
@@ -65,12 +69,6 @@ const ItemsPage = () => {
     window.print();
     document.body.classList.remove('print-mode');
   };
-
-  // Filter items based on search term
-  const filteredItems = companyItems.filter(item =>
-    item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) {
     return <div className="text-center py-8 text-lg">Loading items...</div>;

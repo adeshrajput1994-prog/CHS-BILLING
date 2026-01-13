@@ -27,40 +27,51 @@ interface CompanyContextType {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
-export const CompanyProvider = ({ children }: { children: ReactNode }) => {
+export const CompanyProvider = ({ children }: { ReactNode }) => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState<string | null>(null);
   
+  // Fetch all companies, so pass null for companyId
   const { 
     data: companies, 
     loading, 
     error, 
     addDocument: addCompanyDocument,
-    updateDocument: updateCompanyDocument
-  } = useFirestore<Company>('companies');
+    updateDocument: updateCompanyDocument,
+    fetchData: fetchCompanies // Expose fetchData for explicit refresh if needed
+  } = useFirestore<Company>('companies', null);
 
   // Load selected company from localStorage on initial mount
   useEffect(() => {
     const storedSelectedCompanyId = localStorage.getItem('selectedCompanyId');
     const storedSelectedFinancialYear = localStorage.getItem('selectedFinancialYear');
     
-    if (storedSelectedCompanyId && companies.length > 0) {
-      const company = companies.find(c => c.id === storedSelectedCompanyId);
-      if (company) {
-        setSelectedCompany(company);
-        if (company.financialYears.includes(storedSelectedFinancialYear || "")) {
+    if (companies.length > 0) {
+      let companyToSelect = null;
+      if (storedSelectedCompanyId) {
+        companyToSelect = companies.find(c => c.id === storedSelectedCompanyId);
+      }
+      
+      if (!companyToSelect) {
+        // If stored company not found or no stored ID, default to the first company
+        companyToSelect = companies[0];
+      }
+
+      setSelectedCompany(companyToSelect);
+      if (companyToSelect.financialYears.length > 0) {
+        if (storedSelectedFinancialYear && companyToSelect.financialYears.includes(storedSelectedFinancialYear)) {
           setSelectedFinancialYear(storedSelectedFinancialYear);
-        } else if (company.financialYears.length > 0) {
-          setSelectedFinancialYear(company.financialYears[0]);
+        } else {
+          setSelectedFinancialYear(companyToSelect.financialYears[0]);
         }
+      } else {
+        setSelectedFinancialYear(null);
       }
-    } else if (companies.length > 0) {
-      setSelectedCompany(companies[0]);
-      if (companies[0].financialYears.length > 0) {
-        setSelectedFinancialYear(companies[0].financialYears[0]);
-      }
+    } else {
+      setSelectedCompany(null);
+      setSelectedFinancialYear(null);
     }
-  }, [companies]);
+  }, [companies]); // Depend on companies from Firestore
 
   // Save selected company ID to localStorage
   useEffect(() => {
@@ -90,10 +101,8 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
 
     const addedId = await addCompanyDocument(newCompany);
     if (addedId) {
-      if (!selectedCompany) {
-        // Auto-select the new company if none was selected
-        selectCompany(addedId);
-      }
+      // After adding, re-fetch companies to ensure the list is updated and useEffect can pick it up
+      await fetchCompanies(); 
       showSuccess(`Company '${name}' added successfully for financial year ${financialYear}!`);
     } else {
       showError("Failed to add company.");
@@ -110,9 +119,10 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         setSelectedFinancialYear(null);
       }
       showSuccess(`Company changed to '${company.name}'.`);
-    } else if (companyId === "") {
+    } else if (companyId === "") { // Option to clear selected company
       setSelectedCompany(null);
       setSelectedFinancialYear(null);
+      showSuccess("No company selected.");
     } else {
       showError("Company not found.");
     }
@@ -127,7 +137,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Filter data by currently selected company
+  // Filter data by currently selected company (this is now mostly redundant as useFirestore handles it)
   const filterByCompany = <T extends { companyId?: string }>(data: T[]): T[] => {
     if (!selectedCompany) return [];
     return data.filter(item => item.companyId === selectedCompany.id);

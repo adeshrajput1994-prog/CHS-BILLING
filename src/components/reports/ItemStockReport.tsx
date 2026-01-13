@@ -18,11 +18,15 @@ import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item inter
 import { exportToExcel, exportToPdf } from "@/utils/fileExportImport";
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
+import { useCompany } from "@/context/CompanyContext"; // Import useCompany
 
 const ItemStockReport: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
-  // Fetch items data using useFirestore hook
-  const { data: items, loading, error } = useFirestore<GlobalItem>('items');
+  const { getCurrentCompanyId } = useCompany();
+  const currentCompanyId = getCurrentCompanyId();
+
+  // Fetch items data using useFirestore hook, passing currentCompanyId
+  const { data: items, loading, error } = useFirestore<GlobalItem>('items', currentCompanyId);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   // No need for local state and useEffect to load from localStorage anymore, useFirestore handles it.
@@ -116,6 +120,24 @@ const ItemStockReport: React.FC = () => {
 
   if (error) {
     return <div className="text-center py-8 text-lg text-red-500">Error loading item stock data: {error}</div>;
+  }
+
+  if (!currentCompanyId) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">{t("Item Stock Report", "आइटम स्टॉक रिपोर्ट")}</CardTitle>
+            <CardDescription>{t("Overview of current stock levels for all items.", "सभी आइटमों के लिए वर्तमान स्टॉक स्तरों का अवलोकन।")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground h-24 flex items-center justify-center">
+            Please select a company from Company Settings to view item stock.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

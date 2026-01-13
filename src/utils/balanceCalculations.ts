@@ -4,6 +4,7 @@ import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
 interface Farmer {
   id: string;
   farmerName: string;
+  companyId: string; // Add companyId
   // Add other necessary farmer properties if needed for display in calculations
 }
 
@@ -17,6 +18,7 @@ export interface CashBankTransaction {
   remarks?: string;
   date: string;
   time: string;
+  companyId: string; // Add companyId
 }
 
 export const calculateFarmerDueBalances = (
