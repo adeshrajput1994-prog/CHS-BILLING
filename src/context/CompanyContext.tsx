@@ -27,7 +27,7 @@ interface CompanyContextType {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
-export const CompanyProvider = ({ children }: { ReactNode }) => {
+export const CompanyProvider = ({ children }: { children: ReactNode }) => { // Corrected type definition here
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedFinancialYear, setSelectedFinancialYear] = useState<string | null>(null);
   
