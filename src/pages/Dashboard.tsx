@@ -153,7 +153,7 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Welcome to Vyapar!</h1>
+      <h1 className="text-3xl font-bold">Welcome to CHS BILLING!</h1>
       <p className="text-lg text-muted-foreground">
         Enter details to make your first sale 🚀
       </p>
