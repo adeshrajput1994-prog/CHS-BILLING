@@ -97,8 +97,6 @@ const Dashboard = () => {
     });
 
     // Manufacturing expenses are not aggregated here as they are typically a single entry per company
-    // and the form itself calculates based on all purchase invoices.
-    // If there were multiple manufacturing expense records, this logic would need adjustment.
     manufacturingExpenses.forEach(expense => {
       totalManufacturedKg += Number(expense.manufacturedItemKg);
     });
@@ -227,7 +225,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* New Cards for Total Purchased and Manufactured Items */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Purchased Items</CardTitle>
@@ -319,52 +316,6 @@ const Dashboard = () => {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Original Invoice Details & Calculation Cards (kept for context, but can be removed/modified if desired) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoice Details</CardTitle>
-          <CardDescription>First sale is made in less than a minute on Vyapar</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium">Invoice Number : 01</p>
-              <p className="text-sm font-medium">Invoice Date : {new Date().toLocaleDateString('en-GB')}</p>
-            </div>
-            <div className="flex flex-col items-start md:items-end">
-              <p className="text-sm font-medium mb-2">Bill To :</p>
-              <Link to="/farmers">
-                <Button variant="outline">Add Farmer Details</Button>
-              </Link>
-            </div>
-          </div>
-          <div className="border-dashed border-2 p-4 text-center rounded-md">
-            <p className="text-muted-foreground">Add Sample Item</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoice Calculation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium">Invoice Amount*</p>
-            <p className="text-lg font-semibold">₹ 0.00</p>
-          </div>
-          <div className="flex justify-between items-center">
-            <p className="text-sm font-medium">Received</p>
-            <p className="text-lg font-semibold">₹ 0.00</p>
-          </div>
-          <div className="flex justify-between items-center border-t pt-4">
-            <p className="text-xl font-bold">Balance</p>
-            <p className="text-2xl font-bold text-green-600">₹ 0.00</p>
-          </div>
-          <Button className="w-full">Create Your First Invoice</Button>
         </CardContent>
       </Card>
     </div>
