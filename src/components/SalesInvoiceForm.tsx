@@ -272,7 +272,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
 
       const completeInvoice = initialData
         ? { ...baseInvoice, id: initialData.id } // If editing, include the existing ID
-        : baseInvoice; // If adding, omit the ID
+        : { ...baseInvoice, id: currentInvoiceNo }; // If adding, use currentInvoiceNo as ID
 
       // Handle stock update
       if (initialData) {
@@ -560,6 +560,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
                       <Button
                         variant="outline"
                         role="combobox"
+                        aria-expanded={openFarmerSelect}
                         className="w-full justify-between"
                       >
                         {selectedItemForAdd

@@ -294,7 +294,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
 
       const completeInvoice = initialData
         ? { ...baseInvoice, id: initialData.id } // If editing, include the existing ID
-        : baseInvoice; // If adding, omit the ID
+        : { ...baseInvoice, id: currentPurchaseNo }; // If adding, use currentPurchaseNo as ID
 
       // Handle stock update
       if (initialData) {
@@ -604,6 +604,7 @@ const PurchaseInvoiceForm: React.FC<PurchaseInvoiceFormProps> = ({
                       <Button
                         variant="outline"
                         role="combobox"
+                        aria-expanded={openFarmerSelect}
                         className="w-full justify-between"
                       >
                         {selectedItemForAdd
