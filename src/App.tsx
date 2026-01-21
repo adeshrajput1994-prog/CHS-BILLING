@@ -39,8 +39,8 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <CompanyProvider>
+          <CompanyProvider> {/* Moved CompanyProvider here */}
+            <BrowserRouter>
               <Layout>
                 {/* Migration Button removed */}
                 <Routes>
@@ -59,8 +59,8 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Layout>
-            </CompanyProvider>
-          </BrowserRouter>
+            </BrowserRouter>
+          </CompanyProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
