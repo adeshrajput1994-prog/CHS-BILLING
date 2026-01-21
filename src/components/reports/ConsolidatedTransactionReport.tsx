@@ -92,7 +92,7 @@ const ConsolidatedTransactionReport: React.FC = () => {
         date: txn.date,
         time: txn.time,
         type: txn.type,
-        reference: txn.id.substring(0, 8),
+        reference: txn.id, // Use the custom generated ID
         farmerName: txn.farmerName,
         amount: Number(txn.amount),
         method: txn.paymentMethod,

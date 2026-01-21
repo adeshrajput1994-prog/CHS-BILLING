@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { showError } from "@/utils/toast";
 import { useFirestore } from "@/hooks/use-firestore";
 import { useCompany } from "@/context/CompanyContext";
+import { getNextFarmerId } from "@/utils/idGenerators"; // Import ID generator
 
 interface Farmer {
   id: string;
@@ -28,7 +29,7 @@ const FarmersPage = () => {
   const currentCompanyId = getCurrentCompanyId();
   
   // Pass currentCompanyId to useFirestore
-  const { data: farmers, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Farmer>('farmers', currentCompanyId);
+  const { data: farmers, loading, error, addDocument, updateDocument, deleteDocument, fetchData } = useFirestore<Farmer>('farmers', currentCompanyId);
   
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingFarmer, setEditingFarmer] = useState<Farmer | null>(null);
@@ -49,8 +50,11 @@ const FarmersPage = () => {
       return;
     }
     
+    // Generate a new sequential ID
+    const newId = getNextFarmerId(farmers);
+    
     // companyId is automatically added by useFirestore hook
-    const addedId = await addDocument(newFarmerData);
+    const addedId = await addDocument({ ...newFarmerData, id: newId }); // Pass generated ID
     if (addedId) {
       setViewMode('list');
     }

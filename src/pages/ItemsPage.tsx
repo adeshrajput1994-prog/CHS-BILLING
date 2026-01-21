@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { showSuccess, showError } from "@/utils/toast";
 import { useFirestore } from "@/hooks/use-firestore";
 import { useCompany } from "@/context/CompanyContext";
+import { getNextItemId } from "@/utils/idGenerators"; // Import ID generator
 
 const ItemsPage = () => {
   const { getCurrentCompanyId } = useCompany();
   const currentCompanyId = getCurrentCompanyId();
   
   // Pass currentCompanyId to useFirestore
-  const { data: items, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<Item>('items', currentCompanyId);
+  const { data: items, loading, error, addDocument, updateDocument, deleteDocument, fetchData } = useFirestore<Item>('items', currentCompanyId);
   
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -33,8 +34,11 @@ const ItemsPage = () => {
       return;
     }
     
+    // Generate a new sequential ID
+    const newId = getNextItemId(items);
+    
     // companyId is automatically added by useFirestore hook
-    const addedId = await addDocument(newItemData);
+    const addedId = await addDocument({ ...newItemData, id: newId }); // Pass generated ID
     if (addedId) {
       setViewMode('list');
     }

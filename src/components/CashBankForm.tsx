@@ -215,11 +215,17 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       <CardHeader>
         <CardTitle className="text-2xl font-bold">{initialData ? t("Edit Transaction", "लेनदेन संपादित करें") : t("Record Payment", "भुगतान दर्ज करें")}</CardTitle>
         <CardDescription>
-          {initialData ? t(`Editing transaction ID: ${initialData.id.substring(0, 8)}...`, `लेनदेन आईडी संपादित कर रहा है: ${initialData.id.substring(0, 8)}...`) : t("Add a new payment in or out transaction.", "नया भुगतान अंदर या बाहर लेनदेन जोड़ें।")}
+          {initialData ? t(`Editing transaction ID: ${initialData.id}`, `लेनदेन आईडी संपादित कर रहा है: ${initialData.id}` ) : t("Add a new payment in or out transaction.", "नया भुगतान अंदर या बाहर लेनदेन जोड़ें।")}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
+          {initialData && (
+            <div className="space-y-2">
+              <Label htmlFor="transactionIdDisplay">{t("Transaction ID", "लेनदेन आईडी")}</Label>
+              <Input id="transactionIdDisplay" value={initialData.id} readOnly disabled className="bg-gray-100 dark:bg-gray-800" />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="transactionType">{t("Transaction Type", "लेनदेन का प्रकार")}</Label>
             <RadioGroup

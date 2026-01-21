@@ -14,6 +14,7 @@ import {
   DocumentData,
   QuerySnapshot,
   serverTimestamp,
+  setDoc, // Import setDoc
 } from "firebase/firestore";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -22,7 +23,7 @@ interface FirestoreHook<T> {
   loading: boolean;
   error: string | null;
   fetchData: (conditions?: { field: string; operator: "==" | "<" | ">" | "<=" | ">="; value: any }[]) => Promise<void>;
-  addDocument: (document: Omit<T, "id">) => Promise<string | null>;
+  addDocument: (document: Omit<T, "id"> & { id: string }) => Promise<string | null>; // Expect id for new documents
   updateDocument: (id: string, document: Partial<T>) => Promise<boolean>;
   deleteDocument: (id: string) => Promise<boolean>;
 }
@@ -60,7 +61,7 @@ export function useFirestore<T extends { id?: string; companyId?: string }>(coll
 
       const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
       const fetchedData: T[] = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
+        id: doc.id, // Firestore's document ID
         ...doc.data(),
       })) as T[];
       setData(fetchedData);
@@ -73,11 +74,12 @@ export function useFirestore<T extends { id?: string; companyId?: string }>(coll
     }
   }, [collectionName, companyId]); // Depend on companyId to re-fetch when it changes
 
-  const addDocument = useCallback(async (document: Omit<T, "id">): Promise<string | null> => {
+  // Modified addDocument to use setDoc with a provided ID
+  const addDocument = useCallback(async (document: Omit<T, "id"> & { id: string }): Promise<string | null> => {
     setLoading(true);
     setError(null);
     try {
-      const colRef = collection(db, collectionName);
+      const docRef = doc(db, collectionName, document.id); // Use provided ID as document ID
       const docToAdd = { ...document, createdAt: serverTimestamp() };
       
       // Automatically add companyId if available and not already present
@@ -85,7 +87,7 @@ export function useFirestore<T extends { id?: string; companyId?: string }>(coll
         (docToAdd as T).companyId = companyId;
       }
 
-      const docRef = await addDoc(colRef, docToAdd);
+      await setDoc(docRef, docToAdd); // Use setDoc to set custom ID
       showSuccess(`${collectionName.slice(0, -1)} added successfully!`);
       fetchData(); // Refresh data after adding
       return docRef.id;

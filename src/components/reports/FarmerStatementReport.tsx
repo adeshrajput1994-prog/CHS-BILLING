@@ -126,7 +126,7 @@ const FarmerStatementReport: React.FC = () => {
           date: txn.date,
           time: txn.time,
           type: txn.type,
-          description: `${txn.type} (${txn.paymentMethod}) ${txn.remarks ? `- ${txn.remarks}` : ''}`,
+          description: `${txn.type} (${txn.paymentMethod}) ${txn.remarks ? `- ${txn.remarks}` : ''} (ID: ${txn.id})`, // Use custom ID
           debit: txn.type === "Payment Out" ? Number(txn.amount) : 0,
           credit: txn.type === "Payment In" ? Number(txn.amount) : 0,
           balance: 0, // Will be calculated later

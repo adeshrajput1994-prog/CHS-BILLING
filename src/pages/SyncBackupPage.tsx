@@ -36,7 +36,7 @@ interface Item {
 }
 
 interface CashBankTransaction {
-  id: string;
+  id: string; // This will now be the custom generated ID like T001
   type: "Payment In" | "Payment Out";
   farmerId: string;
   farmerName: string;
@@ -394,7 +394,7 @@ const SyncBackupPage: React.FC = () => {
         <tbody>
           ${cashBankTransactions.map(t => `
             <tr>
-              <td style="border: 1px solid #ddd; padding: 8px;">${t.id.substring(0, 8)}...</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${t.id}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${t.date}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${t.time}</td>
               <td style="border: 1px solid #ddd; padding: 8px;">${t.type}</td>
@@ -940,7 +940,7 @@ const SyncBackupPage: React.FC = () => {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-md">
                         <p className="font-semibold">Expected Excel Columns for Cash/Bank Transactions:</p>
-                        <p><code>id</code> (e.g., txn-...), <code>type</code> (e.g., "Payment In" or "Payment Out"), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>amount</code> (number), <code>paymentMethod</code> (e.g., "Cash" or "Bank"), <code>remarks</code>, <code>date</code> (YYYY-MM-DD), <code>time</code> (HH:MM AM/PM)</p>
+                        <p><code>id</code> (e.g., T001), <code>type</code> (e.g., "Payment In" or "Payment Out"), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>amount</code> (number), <code>paymentMethod</code> (e.g., "Cash" or "Bank"), <code>remarks</code>, <code>date</code> (YYYY-MM-DD), <code>time</code> (HH:MM AM/PM)</p>
                         <p className="mt-1">All columns are expected as text, except 'amount' as a number.</p>
                       </TooltipContent>
                     </Tooltip>

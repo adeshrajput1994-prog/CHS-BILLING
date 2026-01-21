@@ -10,6 +10,7 @@ import { showSuccess, showError } from "@/utils/toast"; // Import showError
 import { usePrintSettings } from "@/hooks/use-print-settings"; // Import usePrintSettings
 import { useFirestore } from "@/hooks/use-firestore"; // Import useFirestore hook
 import { useCompany } from "@/context/CompanyContext"; // Import useCompany
+import { getNextTransactionId } from "@/utils/idGenerators"; // Import ID generator
 
 const CashBankPage: React.FC = () => {
   const { printInHindi } = usePrintSettings(); // Use print settings hook
@@ -17,7 +18,7 @@ const CashBankPage: React.FC = () => {
   const currentCompanyId = getCurrentCompanyId();
 
   // Pass currentCompanyId to useFirestore hook
-  const { data: transactions, loading, error, addDocument, updateDocument, deleteDocument } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
+  const { data: transactions, loading, error, addDocument, updateDocument, deleteDocument, fetchData } = useFirestore<CashBankTransaction>('cashBankTransactions', currentCompanyId);
 
   const [viewMode, setViewMode] = useState<'list' | 'add' | 'edit'>('list'); // Added 'edit' mode
   const [editingTransaction, setEditingTransaction] = useState<CashBankTransaction | null>(null); // State for transaction being edited
@@ -33,8 +34,9 @@ const CashBankPage: React.FC = () => {
       await updateDocument(transactionToSave.id, transactionToSave);
       showSuccess("Transaction updated successfully!");
     } else {
-      // Add new transaction (Firestore will assign ID)
-      await addDocument(transactionToSave);
+      // Add new transaction (Generate ID here)
+      const newId = getNextTransactionId(transactions);
+      await addDocument({ ...transactionToSave, id: newId }); // Pass generated ID
       showSuccess("Transaction recorded successfully!");
     }
     setEditingTransaction(null); // Clear editing state

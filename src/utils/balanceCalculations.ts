@@ -9,7 +9,7 @@ interface Farmer {
 }
 
 export interface CashBankTransaction {
-  id: string;
+  id: string; // This will now be the custom generated ID like T001
   type: "Payment In" | "Payment Out";
   farmerId: string;
   farmerName: string;

@@ -64,7 +64,7 @@ const CashBankTable: React.FC<CashBankTableProps> = ({ transactions, onEdit, onD
               <TableRow key={transaction.id}>
                 <TableCell>
                   <Badge variant="outline">
-                    {transaction.id.substring(0, 8)}...
+                    {transaction.id} {/* Display the custom generated ID */}
                   </Badge>
                 </TableCell>
                 <TableCell>{transaction.date}</TableCell>
@@ -95,7 +95,7 @@ const CashBankTable: React.FC<CashBankTableProps> = ({ transactions, onEdit, onD
                         <AlertDialogTitle>{t("Are you absolutely sure?", "क्या आप पूरी तरह से निश्चित हैं?")}</AlertDialogTitle>
                         <AlertDialogDescription>
                           {t("This action cannot be undone. This will permanently delete the transaction", "यह कार्रवाई पूर्ववत नहीं की जा सकती। यह लेनदेन को स्थायी रूप से हटा देगा")}
-                          <span className="font-bold"> (ID: {transaction.id.substring(0, 8)}...) </span>
+                          <span className="font-bold"> (ID: {transaction.id}) </span>
                           {t("and remove its data from our records.", "और हमारे रिकॉर्ड से इसका डेटा हटा देगा।")}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
