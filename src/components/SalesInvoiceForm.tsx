@@ -258,8 +258,7 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         return;
       }
 
-      const completeInvoice: Omit<CompleteSalesInvoice, 'id'> & { id?: string } = {
-        id: initialData?.id, // Pass existing ID if editing, otherwise it will be undefined for new
+      const baseInvoice = {
         invoiceNo: currentInvoiceNo,
         invoiceDate: currentInvoiceDate,
         invoiceTime: currentInvoiceTime,
@@ -268,8 +267,12 @@ const SalesInvoiceForm: React.FC<SalesInvoiceFormProps> = ({
         totalAmount: totalAmount,
         advance: advanceAmount,
         due: dueAmount,
-        companyId: currentCompanyId || '', // Ensure companyId is passed
+        companyId: currentCompanyId || '',
       };
+
+      const completeInvoice = initialData
+        ? { ...baseInvoice, id: initialData.id } // If editing, include the existing ID
+        : baseInvoice; // If adding, omit the ID
 
       // Handle stock update
       if (initialData) {

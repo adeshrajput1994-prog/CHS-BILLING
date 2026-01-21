@@ -131,8 +131,7 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       return;
     }
 
-    const transactionToSave: Omit<CashBankTransaction, 'id'> & { id?: string } = {
-      id: initialData?.id, // Use existing ID if editing, otherwise it will be undefined for new
+    const baseTransaction = {
       type: data.transactionType,
       farmerId: data.farmerId,
       farmerName: selectedFarmer.farmerName,
@@ -143,6 +142,10 @@ const CashBankForm: React.FC<CashBankFormProps> = ({ initialData, onSave, onCanc
       time: initialData?.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
       companyId: currentCompanyId || '', // Ensure companyId is passed
     };
+
+    const transactionToSave = initialData
+      ? { ...baseTransaction, id: initialData.id } // If editing, include the existing ID
+      : baseTransaction; // If adding, omit the ID
 
     onSave(transactionToSave);
     // No form.reset() here, as onSave will trigger a view change in parent
