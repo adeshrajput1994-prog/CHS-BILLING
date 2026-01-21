@@ -10,11 +10,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CommandGroup } from "@/components/ui/command"; // Import CommandGroup
 import { showSuccess, showError } from "@/utils/toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -203,20 +204,22 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ initialData, onSave, onCancel
                 <SelectValue placeholder={t("Select expense type or cash management", "खर्च का प्रकार या नकद प्रबंधन चुनें")} />
               </SelectTrigger>
               <SelectContent>
-                <CommandGroup heading={t("Company Expenses", "कंपनी के खर्च")}>
+                <SelectGroup>
+                  <SelectLabel>{t("Company Expenses", "कंपनी के खर्च")}</SelectLabel>
                   {commonExpenseTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {t(type, type === "Chai Pani" ? "चाय पानी" : type === "Freight" ? "फ्रेट" : type === "Labour" ? "लेबर" : type === "Oil" ? "तेल" : type === "Electricity Bill" ? "बिजली का बिल" : type === "Rent" ? "किराया" : type === "Salaries" ? "वेतन" : type === "Repairs & Maintenance" ? "मरम्मत और रखरखाव" : type === "Office Supplies" ? "कार्यालय की आपूर्ति" : type === "Travel" ? "यात्रा" : "अन्य")}
                     </SelectItem>
                   ))}
-                </CommandGroup>
-                <CommandGroup heading={t("Cash Management", "नकद प्रबंधन")}>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel>{t("Cash Management", "नकद प्रबंधन")}</SelectLabel>
                   {cashManagementTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {t(type, type === "Cash In (Bank/Home)" ? "नकद अंदर (बैंक/घर)" : "नकद बाहर (बैंक/घर)")}
                     </SelectItem>
                   ))}
-                </CommandGroup>
+                </SelectGroup>
               </SelectContent>
             </Select>
             {errors.expenseCategory && (
