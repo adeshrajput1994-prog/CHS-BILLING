@@ -31,7 +31,8 @@ const UtilitiesPage: React.FC = () => {
     "companies",
     "selectedCompanyId",
     "selectedFinancialYear",
-    "manufacturingExpenses", // Assuming you might store this too
+    "manufacturingExpenses",
+    "expenses", // New: Add expenses to backup/restore
   ];
 
   const handleExportAllData = () => {
@@ -78,7 +79,7 @@ const UtilitiesPage: React.FC = () => {
 
           let mergedData;
           if (Array.isArray(importedValue) && Array.isArray(existingData)) {
-            // For arrays like farmers, items, transactions, invoices: concatenate unique entries
+            // For arrays like farmers, items, transactions, invoices, expenses: concatenate unique entries
             const existingIds = new Set(existingData.map((item: any) => item.id));
             const newUniqueItems = importedValue.filter((item: any) => !existingIds.has(item.id));
             mergedData = [...existingData, ...newUniqueItems];
@@ -138,7 +139,7 @@ const UtilitiesPage: React.FC = () => {
               <Download className="mr-2 h-4 w-4" /> Download Full Backup (JSON)
             </Button>
             <p className="text-sm text-muted-foreground mt-2">
-              This will download all your farmers, items, transactions, invoices, and company settings.
+              This will download all your farmers, items, transactions, invoices, expenses, and company settings.
             </p>
           </div>
 
@@ -179,7 +180,7 @@ const UtilitiesPage: React.FC = () => {
                   <AlertTriangle className="h-6 w-6 mr-2" /> Are you absolutely sure?
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete ALL your farmers, items, transactions, invoices, and company settings from this device.
+                  This action cannot be undone. This will permanently delete ALL your farmers, items, transactions, invoices, expenses, and company settings from this device.
                   Make sure you have a backup before proceeding.
                 </AlertDialogDescription>
               </AlertDialogHeader>

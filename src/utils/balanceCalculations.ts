@@ -1,5 +1,6 @@
 import { CompleteSalesInvoice } from "@/components/SalesInvoiceForm";
 import { CompletePurchaseInvoice } from "@/components/PurchaseInvoiceForm";
+import { Expense } from "@/components/ExpenseForm"; // Import Expense interface
 
 interface Farmer {
   id: string;
@@ -61,4 +62,40 @@ export const calculateFarmerDueBalances = (
   });
 
   return balances;
+};
+
+export const calculateCompanyCashFlow = (
+  expenses: Expense[]
+): { cashInHand: number; totalCashInFromBankHome: number; totalCashOutToBankHome: number; totalCompanyExpenses: number } => {
+  let cashInHand = 0; // Represents the current cash balance of the company
+  let totalCashInFromBankHome = 0;
+  let totalCashOutToBankHome = 0;
+  let totalCompanyExpenses = 0;
+
+  expenses.forEach(entry => {
+    const amount = Number(entry.amount);
+
+    if (entry.type === "Cash In (Bank/Home)") {
+      cashInHand += amount;
+      totalCashInFromBankHome += amount;
+    } else if (entry.type === "Cash Out (Bank/Home)") {
+      cashInHand -= amount;
+      totalCashOutToBankHome += amount;
+    } else {
+      // Regular company expenses
+      totalCompanyExpenses += amount;
+      if (entry.paymentMethod === "Cash") {
+        cashInHand -= amount; // Deduct from cash in hand if paid by cash
+      }
+      // If paid by Bank, it affects bank balance, not cash in hand directly.
+      // For simplicity, we're only tracking 'cash in hand' here.
+    }
+  });
+
+  return {
+    cashInHand,
+    totalCashInFromBankHome,
+    totalCashOutToBankHome,
+    totalCompanyExpenses,
+  };
 };

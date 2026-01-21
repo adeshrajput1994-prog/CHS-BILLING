@@ -11,6 +11,7 @@ import PurchaseInvoicesPage from "./pages/PurchaseInvoicesPage";
 import SalesInvoicesPage from "./pages/SalesInvoicesPage";
 import ManufacturingExpensesPage from "./pages/ManufacturingExpensesPage";
 import CashBankPage from "./pages/CashBankPage";
+import ExpensesPage from "./pages/ExpensesPage"; // New import
 import ReportsPage from "./pages/ReportsPage";
 import SyncBackupPage from "./pages/SyncBackupPage";
 import UtilitiesPage from "./pages/UtilitiesPage";
@@ -19,30 +20,20 @@ import CompanySettingsPage from "./pages/CompanySettingsPage";
 import NotFound from "./pages/NotFound";
 import { CompanyProvider } from "./context/CompanyContext";
 import { ThemeProvider } from "./components/ThemeProvider";
-// import { migrateLocalStorageToFirestore } from "./utils/migrateToFirestore"; // Removed import
-import React, { useState, useEffect } from "react"; // Added useEffect
+import React from "react";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // const [migrationAttempted, setMigrationAttempted] = useState(false); // Removed state
-
-  // Removed handleMigrateData function
-
-  // Optional: You could add a useEffect here to trigger migration once if needed,
-  // but it's generally better to handle migration as a one-time script or on first run.
-  // For now, we'll assume migration is handled externally or not needed after initial setup.
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <CompanyProvider> {/* Moved CompanyProvider here */}
+          <CompanyProvider>
             <BrowserRouter>
               <Layout>
-                {/* Migration Button removed */}
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/farmers" element={<FarmersPage />} />
@@ -51,6 +42,7 @@ const App = () => {
                   <Route path="/sale" element={<SalesInvoicesPage />} />
                   <Route path="/manufacturing-expenses" element={<ManufacturingExpensesPage />} />
                   <Route path="/cash-bank" element={<CashBankPage />} />
+                  <Route path="/expenses" element={<ExpensesPage />} /> {/* New Route */}
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/sync-backup" element={<SyncBackupPage />} />
                   <Route path="/utilities" element={<UtilitiesPage />} />

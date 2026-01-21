@@ -14,6 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Item as GlobalItem } from "@/components/ItemForm"; // Import Item interface
+import { Expense } from "@/components/ExpenseForm"; // Import Expense interface
 
 // Define interfaces for all data types (matching existing components)
 interface Farmer {
@@ -102,12 +103,14 @@ const SyncBackupPage: React.FC = () => {
   const [cashBankTransactions, setCashBankTransactions] = useState<CashBankTransaction[]>([]);
   const [salesInvoices, setSalesInvoices] = useState<CompleteSalesInvoice[]>([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState<CompletePurchaseInvoice[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]); // New: State for expenses
 
   const [selectedFarmerFile, setSelectedFarmerFile] = useState<File | null>(null);
   const [selectedItemFile, setSelectedItemFile] = useState<File | null>(null); // New state for item file
   const [selectedCashBankFile, setSelectedCashBankFile] = useState<File | null>(null);
   const [selectedSalesInvoiceFile, setSelectedSalesInvoiceFile] = useState<File | null>(null);
   const [selectedPurchaseInvoiceFile, setSelectedPurchaseInvoiceFile] = useState<File | null>(null);
+  const [selectedExpenseFile, setSelectedExpenseFile] = useState<File | null>(null); // New: State for expense file
 
   // Load all data from localStorage on initial mount
   useEffect(() => {
@@ -155,6 +158,17 @@ const SyncBackupPage: React.FC = () => {
         due: Number(invoice.due),
       }));
       setPurchaseInvoices(processedInvoices);
+    }
+
+    // New: Load expenses
+    const storedExpenses = localStorage.getItem("expenses");
+    if (storedExpenses) {
+      const parsedExpenses: Expense[] = JSON.parse(storedExpenses);
+      const processedExpenses = parsedExpenses.map(expense => ({
+        ...expense,
+        amount: Number(expense.amount),
+      }));
+      setExpenses(processedExpenses);
     }
   }, []);
 
@@ -768,6 +782,91 @@ const SyncBackupPage: React.FC = () => {
     });
   };
 
+  // --- Expenses Handlers ---
+  const handleExpenseFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setSelectedExpenseFile(event.target.files[0]);
+    } else {
+      setSelectedExpenseFile(null);
+    }
+  };
+
+  const handleImportExpenses = async () => {
+    if (!selectedExpenseFile) {
+      showError("Please select an Excel file to import expenses.");
+      return;
+    }
+
+    const importedData = await importFromExcel<Expense>(selectedExpenseFile);
+    if (importedData) {
+      const isValid = importedData.every(item =>
+        item.id && item.type && item.amount !== undefined && item.paymentMethod && item.date && item.time
+      );
+
+      if (!isValid) {
+        showError("Imported Excel data format is incorrect for Expenses. Required columns: 'id', 'type', 'amount', 'paymentMethod', 'date', 'time'.");
+        return;
+      }
+
+      setExpenses(importedData);
+      localStorage.setItem("expenses", JSON.stringify(importedData));
+      showSuccess("Expenses imported and saved successfully!");
+      setSelectedExpenseFile(null);
+    }
+  };
+
+  const handleExportExpensesToExcel = () => {
+    exportToExcel(expenses, "Company_Expenses_Data", "CompanyExpenses");
+  };
+
+  const handleExportExpensesToPdf = () => {
+    const tempDivId = "expenses-pdf-content";
+    let tempDiv = document.getElementById(tempDivId);
+    if (!tempDiv) {
+      tempDiv = document.createElement("div");
+      tempDiv.id = tempDivId;
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      document.body.appendChild(tempDiv);
+    }
+
+    tempDiv.innerHTML = `
+      <h1 style="text-align: center; margin-bottom: 20px;">Company Expenses & Cash Management</h1>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f2f2f2;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ID</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
+            <th style="1px solid #ddd; padding: 8px; text-align: left;">Time</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Amount</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Method</th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${expenses.map(e => `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.id}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.date}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.time}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.type}</td>
+              <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹ ${e.amount.toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.paymentMethod}</td>
+              <td style="border: 1px solid #ddd; padding: 8px;">${e.remarks || '-'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    exportToPdf(tempDivId, "Company_Expenses_List", "Company Expenses & Cash Management").finally(() => {
+      if (tempDiv && tempDiv.parentNode) {
+        tempDiv.parentNode.removeChild(tempDiv);
+      }
+    });
+  };
+
 
   return (
     <div className="space-y-8 p-4">
@@ -817,7 +916,7 @@ const SyncBackupPage: React.FC = () => {
 
               {/* Cash & Bank Transactions Export */}
               <div>
-                <h3 className="font-medium mb-2">Cash & Bank Transactions:</h3>
+                <h3 className="font-medium mb-2">Cash & Bank Transactions (Farmers):</h3>
                 <div className="flex space-x-2">
                   <Button onClick={handleExportCashBankToExcel} className="flex-1" disabled={cashBankTransactions.length === 0}>
                     <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Transactions to Excel
@@ -850,6 +949,19 @@ const SyncBackupPage: React.FC = () => {
                   </Button>
                   <Button onClick={handleExportPurchaseInvoicesToPdf} className="flex-1" disabled={purchaseInvoices.length === 0}>
                     <FileTextIcon className="mr-2 h-4 w-4" /> Export Purchases to PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* New: Expenses Export */}
+              <div>
+                <h3 className="font-medium mb-2">Company Expenses & Cash Management:</h3>
+                <div className="flex space-x-2">
+                  <Button onClick={handleExportExpensesToExcel} className="flex-1" disabled={expenses.length === 0}>
+                    <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Expenses to Excel
+                  </Button>
+                  <Button onClick={handleExportExpensesToPdf} className="flex-1" disabled={expenses.length === 0}>
+                    <FileTextIcon className="mr-2 h-4 w-4" /> Export Expenses to PDF
                   </Button>
                 </div>
               </div>
@@ -924,7 +1036,7 @@ const SyncBackupPage: React.FC = () => {
 
               {/* Cash & Bank Transactions Import */}
               <div>
-                <h3 className="font-medium mb-2">Cash & Bank Transactions:</h3>
+                <h3 className="font-medium mb-2">Cash & Bank Transactions (Farmers):</h3>
                 <div className="flex items-center space-x-2">
                   <Input type="file" accept=".xlsx, .xls" onChange={handleCashBankFileChange} className="flex-1" />
                   <Button onClick={handleImportCashBank} disabled={!selectedCashBankFile}>
@@ -996,6 +1108,33 @@ const SyncBackupPage: React.FC = () => {
                         <p className="font-semibold">Expected Excel Columns for Purchase Invoices (one row per item):</p>
                         <p><code>purchaseNo</code> (string, e.g., P-YYYYMMDD-001), <code>purchaseDate</code> (YYYY-MM-DD), <code>purchaseTime</code> (HH:MM AM/PM), <code>farmerId</code> (e.g., F001), <code>farmerName</code>, <code>selectedItemId</code> (e.g., I001), <code>itemName</code>, <code>grossWeight</code> (number), <code>tareWeight</code> (number), <code>mudDeduction</code> (number, 0-100), <code>netWeight</code> (number), <code>finalWeight</code> (number), <code>rate</code> (number), <code>amount</code> (number), <code>totalAmount</code> (number), <code>advance</code> (number), <code>due</code> (number)</p>
                         <p className="mt-1"><code>farmerId</code> and <code>selectedItemId</code> must exist in your current Farmers and Items data. <code>purchaseNo</code> is crucial for grouping items into one invoice.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <span>Click <Info /> for expected Excel format.</span>
+                </div>
+              </div>
+
+              {/* New: Expenses Import */}
+              <div>
+                <h3 className="font-medium mb-2">Company Expenses & Cash Management:</h3>
+                <div className="flex items-center space-x-2">
+                  <Input type="file" accept=".xlsx, .xls" onChange={handleExpenseFileChange} className="flex-1" />
+                  <Button onClick={handleImportExpenses} disabled={!selectedExpenseFile}>
+                    <Upload className="mr-2 h-4 w-4" /> Import Expenses
+                  </Button>
+                </div>
+                {selectedExpenseFile && <p className="text-sm text-muted-foreground mt-1">Selected: {selectedExpenseFile.name}</p>}
+                <div className="mt-2 text-sm text-muted-foreground flex items-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 mr-1 text-blue-500 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md">
+                        <p className="font-semibold">Expected Excel Columns for Expenses:</p>
+                        <p><code>id</code> (e.g., E001), <code>type</code> (e.g., "Chai Pani", "Cash In (Bank/Home)"), <code>amount</code> (number), <code>date</code> (YYYY-MM-DD), <code>time</code> (HH:MM AM/PM), <code>paymentMethod</code> (e.g., "Cash", "Bank", "N/A"), <code>remarks</code></p>
+                        <p className="mt-1">All columns are expected as text, except 'amount' as a number.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

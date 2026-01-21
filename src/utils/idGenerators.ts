@@ -10,6 +10,10 @@ export interface TransactionIdGenerator {
   id: string;
 }
 
+export interface ExpenseIdGenerator { // New interface for Expense ID
+  id: string;
+}
+
 // Helper function to get the next farmer ID (e.g., F001, F002)
 export const getNextFarmerId = (currentFarmers: FarmerIdGenerator[]) => {
   let maxIdNum = 0;
@@ -53,4 +57,19 @@ export const getNextTransactionId = (currentTransactions: TransactionIdGenerator
     }
   });
   return `T${String(maxIdNum + 1).padStart(3, '0')}`;
+};
+
+// Helper function to get the next expense ID (e.g., E001, E002)
+export const getNextExpenseId = (currentExpenses: ExpenseIdGenerator[]) => {
+  let maxIdNum = 0;
+  currentExpenses.forEach(expense => {
+    const match = expense.id.match(/^E(\d+)$/);
+    if (match && match[1]) {
+      const idNum = parseInt(match[1], 10);
+      if (idNum > maxIdNum) {
+        maxIdNum = idNum;
+      }
+    }
+  });
+  return `E${String(maxIdNum + 1).padStart(3, '0')}`;
 };

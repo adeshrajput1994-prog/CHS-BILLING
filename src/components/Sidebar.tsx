@@ -14,6 +14,7 @@ import {
   Settings,
   Menu,
   Building2, // New icon for Company Settings
+  Wallet, // New icon for Expenses
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +29,7 @@ const navItems = [
   { name: "Purchase Invoices", icon: ShoppingCart, path: "/purchase" }, // Updated name and path
   { name: "Manufacturing Expenses", icon: Receipt, path: "/manufacturing-expenses" },
   { name: "Cash & Bank", icon: Banknote, path: "/cash-bank" },
+  { name: "Expenses", icon: Wallet, path: "/expenses" }, // New nav item for Expenses
   { name: "Reports", icon: BarChart, path: "/reports" },
   { name: "Sync, Share & Backup", icon: Cloud, path: "/sync-backup" },
   { name: "Utilities", icon: Settings, path: "/utilities" },
