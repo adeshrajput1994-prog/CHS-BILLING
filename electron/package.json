@@ -1,7 +1,7 @@
 {
-  "name": "vyapar-app",
+  "name": "bright-alpaca-play",
   "version": "1.0.0",
-  "description": "Vyapar Business Management App",
+  "description": "Bright Alpaca Play App",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -9,8 +9,8 @@
     "pack": "electron-builder --dir"
   },
   "build": {
-    "appId": "com.example.vyaparapp",
-    "productName": "Vyapar App",
+    "appId": "com.example.brightalpacaplay",
+    "productName": "BrightAlpacaPlay",
     "directories": {
       "output": "dist"
     },
